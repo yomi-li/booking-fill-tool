@@ -23,10 +23,15 @@ import customer_sku
 import amazon_pl
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE, "config.json")
-RULES_PATH = os.path.join(BASE, "rules.json")
+# 可写数据目录：默认项目目录（本地/便携版行为不变）。
+# 云端部署通过环境变量 DATA_DIR 指向持久卷（如 /data），
+# 使 SKU 库 / 产品图片 / 规则 / 配置在重部署后不丢失。
+DATA_DIR = os.environ.get("DATA_DIR") or BASE
+os.makedirs(DATA_DIR, exist_ok=True)
+CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
+RULES_PATH = os.path.join(DATA_DIR, "rules.json")
 TEMPLATE_HTML = os.path.join(BASE, "templates", "index.html")
-IMAGE_DIR = os.path.join(BASE, "sku_images")
+IMAGE_DIR = os.path.join(DATA_DIR, "sku_images")
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
 app = FastAPI(title="单证提取填充工具")

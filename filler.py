@@ -42,6 +42,18 @@ IMG_COL = 30  # AD 列：图片
 # 模板 LOGO 由 openpyxl 在 load_workbook 时自动保留（浮动图片 + 原锚点）。
 
 
+def _img_dirs():
+    """候选图片目录：优先 DATA_DIR（持久卷），其次项目目录。"""
+    base = os.path.dirname(os.path.abspath(__file__))
+    data = os.environ.get("DATA_DIR") or base
+    out = []
+    for d in (data, base):
+        p = os.path.join(d, "sku_images")
+        if p not in out:
+            out.append(p)
+    return out
+
+
 def _resolve_image(image_path, sku=""):
     """图片路径跨平台兜底解析（解决换机/云端后绝对路径失效导致图片不显示）：
     1) 原路径存在 → 直接用；
@@ -52,17 +64,17 @@ def _resolve_image(image_path, sku=""):
         return None
     if os.path.exists(image_path):
         return image_path
-    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sku_images")
     bn = os.path.basename(str(image_path).replace("\\", "/"))
-    if bn:
-        cand = os.path.join(base_dir, bn)
-        if os.path.exists(cand):
-            return cand
-    if sku:
-        for ext in (".png", ".jpg", ".jpeg", ".webp"):
-            cand = os.path.join(base_dir, f"{sku}{ext}")
+    for img_dir in _img_dirs():
+        if bn:
+            cand = os.path.join(img_dir, bn)
             if os.path.exists(cand):
                 return cand
+        if sku:
+            for ext in (".png", ".jpg", ".jpeg", ".webp"):
+                cand = os.path.join(img_dir, f"{sku}{ext}")
+                if os.path.exists(cand):
+                    return cand
     return None
 
 

@@ -9,5 +9,7 @@ _samples/
 样例托书*.xlsx
 .git/
 .gitignore
+.github/
+docs/
 Dockerfile
 .dockerignore

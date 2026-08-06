@@ -1,4 +1,4 @@
-# booking-fill-tool — 云端部署镜像（Render / Railway / Fly.io 通用）
+# booking-fill-tool — 轻量服务器部署镜像（Render / Railway / Sealos 亦可用）
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -7,13 +7,18 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 再复制应用代码（sku_images / assets / customer_sku.json 等都会进来）
+# 再复制应用代码（sku_images / assets / customer_sku.json 种子 等都会进来）
 COPY . .
 
-# 云平台通过环境变量 PORT 注入；默认 8000
+# 可写数据目录指向持久卷；模板 assets/ 只读留在镜像内
 ENV HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    DATA_DIR=/data
 
+VOLUME ["/data"]
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

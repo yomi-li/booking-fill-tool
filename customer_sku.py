@@ -26,8 +26,12 @@ import json
 import os
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-LIB_PATH = os.path.join(BASE, "customer_sku.json")
-IMAGE_DIR = os.path.join(BASE, "sku_images")
+# 可写数据目录：默认项目目录；云端部署通过环境变量 DATA_DIR 指向持久卷，
+# 使 SKU 库与产品图片在重部署后不丢失。
+DATA_DIR = os.environ.get("DATA_DIR") or BASE
+LIB_PATH = os.path.join(DATA_DIR, "customer_sku.json")
+IMAGE_DIR = os.path.join(DATA_DIR, "sku_images")
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
 SKU_FIELDS = [
     "sku", "cn_name", "en_name", "hs_code",

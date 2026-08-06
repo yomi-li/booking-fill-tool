@@ -1,0 +1,39 @@
+# booking-fill-tool — 轻量服务器自动部署
+# 触发：push 到 main 分支
+# 流程：SSH 到服务器 → git 拉最新代码 → docker compose 重建容器
+#
+# 首次使用前必须在仓库 Settings → Secrets and variables → Actions 里配置：
+#   SERVER_HOST    服务器公网 IP（如 124.xxx.xxx.xxx）
+#   SERVER_USER    登录用户名（如 ubuntu / root）
+#   SERVER_SSH_KEY 服务器登录私钥（OpenSSH 格式整段）
+#   SERVER_PORT    可选，SSH 端口，默认 22
+#
+# 服务器端需先按《轻量服务器部署指南.md》完成初始化：
+#   /opt/booking-fill-tool 已是 git clone 的仓库，且已配置免密拉取。
+name: Deploy to Lightweight Server
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+            cd /opt/booking-fill-tool
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose up -d --build --remove-orphans
+            docker image prune -f >/dev/null 2>&1 || true
+            echo "deploy done: $(date)"
