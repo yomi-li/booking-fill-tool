@@ -2,6 +2,7 @@ fastapi
 uvicorn
 pdfplumber
 openpyxl
+xlrd
 python-multipart
 requests
 pywin32; sys_platform == 'win32'
