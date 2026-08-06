@@ -1,0 +1,37 @@
+# ---- Python / 本地环境（Docker 不用，别推）----
+__pycache__/
+*.pyc
+venv/
+python/
+*.egg-info/
+
+# ---- 临时 / 日志 / 备份 ----
+*.log
+_svc.log
+*.bak
+*.bak*
+_samples/
+_old_template_backup_*.xlsx
+*.bak2
+
+# ---- 本机调试脚本（非部署必需）----
+_chk_*.py
+_syntax_*.py
+_check_*.py
+_check_js.js
+_chk_*.txt
+_syntax_*.txt
+_check_*.out
+_*.out
+
+# ---- 客户样例托书（含敏感数据，非部署必需）----
+样例托书*.xlsx
+
+# ---- 系统 / IDE ----
+.DS_Store
+Thumbs.db
+
+# 注意：以下“必须保留”，不在此忽略：
+#   app.py / *.py 主代码、requirements.txt、Dockerfile、.dockerignore、
+#   config.json、rules.json、assets/（模板）、sku_images/（产品图种子）、
+#   customer_sku.json（产品库种子）、templates/、start_server.bat、README*

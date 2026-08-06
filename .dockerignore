@@ -1,0 +1,13 @@
+venv/
+python/
+__pycache__/
+*.pyc
+*.bak
+*.log
+_svc.log
+_samples/
+样例托书*.xlsx
+.git/
+.gitignore
+Dockerfile
+.dockerignore

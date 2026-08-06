@@ -1,0 +1,519 @@
+{
+  "version": 1,
+  "settings": {
+    "currency_aliases": {
+      "us$": "USD",
+      "usd": "USD",
+      "美元": "USD",
+      "dollars": "USD",
+      "rmb": "CNY",
+      "cny": "CNY",
+      "人民币": "CNY",
+      "￥": "CNY"
+    },
+    "number_clean": [
+      "us$",
+      "$",
+      ",",
+      " "
+    ]
+  },
+  "rules": [
+    {
+      "id": "lgs_packing",
+      "name": "LGS 装箱单 (形式一 XLS)",
+      "doc_type": "packing",
+      "match": {
+        "any_filename": [
+          "LGS"
+        ],
+        "any_text": [
+          "PACKING LIST",
+          "ENTRANS"
+        ]
+      },
+      "mode": "table",
+      "header_match": [
+        "Description of Goods",
+        "N.W",
+        "G.W"
+      ],
+      "row_filter": {
+        "min_num_cells": 3,
+        "exclude_text": [
+          "TOTAL",
+          "SAY TOTAL"
+        ]
+      },
+      "columns": {
+        "cn_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "cn"
+        },
+        "en_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "en"
+        },
+        "total_qty": {
+          "header": [
+            "Quantity"
+          ],
+          "as": "num"
+        },
+        "net_total": {
+          "header": [
+            "N.W"
+          ],
+          "as": "num"
+        },
+        "gross_total": {
+          "header": [
+            "G.W"
+          ],
+          "as": "num"
+        },
+        "total_cbm": {
+          "header": [
+            "Measurement",
+            "CBM",
+            "CBMS"
+          ],
+          "as": "num"
+        }
+      },
+      "per_ctn": [
+        "net_total",
+        "gross_total",
+        "total_qty"
+      ]
+    },
+    {
+      "id": "lgs_invoice",
+      "name": "LGS 发票 (形式一 XLS)",
+      "doc_type": "invoice",
+      "match": {
+        "any_filename": [
+          "LGS"
+        ],
+        "any_text": [
+          "COMMERCIAL INVOICE",
+          "ENTRANS"
+        ]
+      },
+      "mode": "table",
+      "header_match": [
+        "Descriptions",
+        "Amount"
+      ],
+      "row_filter": {
+        "min_num_cells": 3,
+        "exclude_text": [
+          "TOTAL",
+          "SAY TOTAL"
+        ]
+      },
+      "columns": {
+        "cn_name": {
+          "header": [
+            "Descriptions"
+          ],
+          "mode": "cn"
+        },
+        "en_name": {
+          "header": [
+            "Descriptions"
+          ],
+          "mode": "en"
+        },
+        "hs_code": {
+          "header": [
+            "Harmonised",
+            "Commodity Code",
+            "HS"
+          ]
+        },
+        "total_qty": {
+          "header": [
+            "Quantity"
+          ],
+          "as": "num"
+        },
+        "unit_price": {
+          "header": [
+            "Unit Price"
+          ],
+          "as": "num"
+        },
+        "total_price": {
+          "header": [
+            "Amount"
+          ],
+          "as": "num"
+        },
+        "total_cartons": {
+          "header": [
+            "CTN",
+            "CARTON"
+          ],
+          "parse_num_suffix": true
+        }
+      },
+      "currency_default": "USD"
+    },
+    {
+      "id": "wnq_packing",
+      "name": "WNQ 装箱单 (形式三 PDF)",
+      "doc_type": "packing",
+      "match": {
+        "any_filename": [
+          "045943",
+          "NP"
+        ],
+        "any_text": [
+          "WNQ",
+          "PACKING LIST"
+        ]
+      },
+      "mode": "table",
+      "header_match": [
+        "Description of Goods",
+        "Net Weight",
+        "Gross Weight"
+      ],
+      "row_filter": {
+        "min_num_cells": 3,
+        "exclude_text": [
+          "TOTAL",
+          "SAY TOTAL"
+        ]
+      },
+      "columns": {
+        "cn_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "cn"
+        },
+        "en_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "en"
+        },
+        "model": {
+          "header": [
+            "Specs"
+          ]
+        },
+        "total_qty": {
+          "header": [
+            "Quantity"
+          ],
+          "as": "num"
+        },
+        "total_cartons": {
+          "header": [
+            "Packing",
+            "Cartons"
+          ],
+          "as": "num"
+        },
+        "net_total": {
+          "header": [
+            "Net Weight"
+          ],
+          "as": "num"
+        },
+        "gross_total": {
+          "header": [
+            "Gross Weight"
+          ],
+          "as": "num"
+        },
+        "total_cbm": {
+          "header": [
+            "Meas",
+            "CBM"
+          ],
+          "as": "num"
+        }
+      },
+      "per_ctn": [
+        "net_total",
+        "gross_total",
+        "total_qty"
+      ]
+    },
+    {
+      "id": "wnq_invoice",
+      "name": "WNQ 发票 (形式三 PDF)",
+      "doc_type": "invoice",
+      "match": {
+        "any_filename": [
+          "045943",
+          "NP"
+        ],
+        "any_text": [
+          "WNQ",
+          "COMMERCIAL INVOICE"
+        ]
+      },
+      "mode": "table",
+      "header_match": [
+        "Description of Goods",
+        "Unit Price",
+        "Amount"
+      ],
+      "row_filter": {
+        "min_num_cells": 3,
+        "exclude_text": [
+          "TOTAL",
+          "SAY TOTAL"
+        ]
+      },
+      "columns": {
+        "cn_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "cn"
+        },
+        "en_name": {
+          "header": [
+            "Description of Goods"
+          ],
+          "mode": "en"
+        },
+        "model": {
+          "header": [
+            "Specs"
+          ]
+        },
+        "total_qty": {
+          "header": [
+            "Quantity"
+          ],
+          "as": "num"
+        },
+        "unit_price": {
+          "header": [
+            "Unit Price"
+          ],
+          "as": "num"
+        },
+        "total_price": {
+          "header": [
+            "Amount"
+          ],
+          "as": "num"
+        }
+      },
+      "currency_default": "USD"
+    },
+    {
+      "id": "wnq_customs",
+      "name": "WNQ 报关单 (形式三 XLS)",
+      "doc_type": "customs",
+      "match": {
+        "any_filename": [
+          "NP",
+          "报关单"
+        ],
+        "any_text": [
+          "万年青",
+          "WNQ",
+          "NP"
+        ]
+      },
+      "mode": "grid_relative",
+      "find_row": {
+        "col": 4,
+        "regex": "^\\d{10}$"
+      },
+      "fields": {
+        "hs_code": {
+          "row_offset": 0,
+          "col": 4
+        },
+        "cn_name": {
+          "row_offset": 0,
+          "col": 12
+        },
+        "model": {
+          "row_offset": 1,
+          "col": 12,
+          "parse": "pipe_5"
+        },
+        "unit_price": {
+          "row_offset": 0,
+          "col": 52,
+          "as": "num"
+        },
+        "total_price": {
+          "row_offset": 1,
+          "col": 52,
+          "as": "num"
+        },
+        "total_qty": {
+          "row_offset": 2,
+          "col": 43,
+          "as": "num"
+        }
+      },
+      "currency_default": "USD"
+    },
+    {
+      "id": "kb_packing",
+      "name": "KB 装箱单 (形式二 PDF)",
+      "doc_type": "packing",
+      "match": {
+        "any_filename": [
+          "KB260991",
+          "箱单"
+        ],
+        "any_text": [
+          "KINGBOND",
+          "WINDOW CURTAIN",
+          "PACKING LIST"
+        ]
+      },
+      "mode": "text",
+      "patterns": [
+        {
+          "regex": "^([A-Za-z][A-Za-z &.]*?)\\s+(\\d+)SETS\\s+(\\d+)CTNS\\s+([\\d,.]+)KGS\\s+([\\d,.]+)KGS\\s+([\\d,.]+)CBM",
+          "flags": "",
+          "exclude_text": [
+            "TOTAL"
+          ],
+          "fields": {
+            "en_name": {
+              "group": 1
+            },
+            "total_qty": {
+              "group": 2,
+              "as": "num"
+            },
+            "total_cartons": {
+              "group": 3,
+              "as": "num"
+            },
+            "gross_total": {
+              "group": 4,
+              "as": "num"
+            },
+            "net_total": {
+              "group": 5,
+              "as": "num"
+            },
+            "total_cbm": {
+              "group": 6,
+              "as": "num"
+            }
+          }
+        }
+      ],
+      "per_ctn": [
+        "net_total",
+        "gross_total",
+        "total_qty"
+      ]
+    },
+    {
+      "id": "kb_invoice",
+      "name": "KB 发票 (形式二 PDF)",
+      "doc_type": "invoice",
+      "match": {
+        "any_filename": [
+          "KB260991",
+          "发票"
+        ],
+        "any_text": [
+          "KINGBOND",
+          "WINDOW CURTAIN",
+          "COMMERCIAL INVOICE"
+        ]
+      },
+      "mode": "text",
+      "patterns": [
+        {
+          "regex": "^([A-Za-z][A-Za-z &.]*?)\\s+(\\d+)SETS\\s+USD([\\d,.]+)\\s+USD([\\d,.]+)",
+          "flags": "",
+          "exclude_text": [
+            "TOTAL",
+            "SAY"
+          ],
+          "fields": {
+            "en_name": {
+              "group": 1
+            },
+            "total_qty": {
+              "group": 2,
+              "as": "num"
+            },
+            "unit_price": {
+              "group": 3,
+              "as": "num"
+            },
+            "total_price": {
+              "group": 4,
+              "as": "num"
+            }
+          }
+        }
+      ],
+      "currency_default": "USD"
+    },
+    {
+      "id": "kb_customs",
+      "name": "KB 报关单 (形式二 PDF)",
+      "doc_type": "customs",
+      "match": {
+        "any_filename": [
+          "KB260991",
+          "报关单"
+        ],
+        "any_text": [
+          "KINGBOND",
+          "涤纶窗帘",
+          "宁波凯邦"
+        ]
+      },
+      "mode": "text_block",
+      "regex": "(\\d+)\\s+(\\d{10})\\s+(\\S+)\\s+(\\d+)套\\s+([\\d.]+)\\s+([\\d,.]+)\\s+(\\S+)[\\s\\S]*?品牌：([^;]+)",
+      "flags": "S",
+      "fields": {
+        "item_no": {
+          "group": 1
+        },
+        "hs_code": {
+          "group": 2
+        },
+        "cn_name": {
+          "group": 3
+        },
+        "total_qty": {
+          "group": 4,
+          "as": "num"
+        },
+        "unit_price": {
+          "group": 5,
+          "as": "num"
+        },
+        "total_price": {
+          "group": 6,
+          "as": "num"
+        },
+        "currency": {
+          "group": 7
+        },
+        "brand": {
+          "group": 8
+        }
+      }
+    }
+  ]
+}

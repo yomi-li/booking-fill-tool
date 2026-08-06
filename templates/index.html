@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单证提取填充工具 v2.5 (2026-08-04)</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --border:#d9dee5; --text:#1f2933;
+    --muted:#6b7785; --primary:#2563eb; --primary-d:#1d4ed8;
+    --warn:#b45309; --warnbg:#fffbeb; --ok:#047857; --err:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  header{background:var(--panel);border-bottom:1px solid var(--border);padding:14px 22px;
+    display:flex;align-items:center;gap:12px}
+  header h1{font-size:18px;margin:0}
+  nav{display:flex;gap:6px;margin-left:auto}
+  nav button{background:#eef2f7;color:var(--text);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600}
+  nav button.active{background:var(--primary);color:#fff}
+  .wrap{max-width:1180px;margin:18px auto;padding:0 18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 16px}
+  .skugrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px 12px;align-items:start;grid-auto-flow:row dense}
+  .skugrid .field{display:flex;flex-direction:column;min-width:0}
+  .skugrid .field.span2{grid-column:span 2}
+  .skugrid .field.span3{grid-column:span 3}
+  .skugrid label{font-size:11px;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .skugrid input{width:100%;padding:6px 7px;font-size:12.5px}
+  @media(max-width:980px){ .skugrid{grid-template-columns:repeat(3,1fr)} .skugrid .field.span2,.skugrid .field.span3{grid-column:span 2} }
+  @media(max-width:560px){ .skugrid{grid-template-columns:repeat(2,1fr)} .skugrid .field.span2,.skugrid .field.span3{grid-column:span 2} }
+  .imgzone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;background:#fafbfc;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:120px;justify-content:center}
+  .imgzone.hover{border-color:var(--primary);background:#eff6ff}
+  .imgzone img{max-height:140px;max-width:100%;border:1px solid var(--border);border-radius:6px;display:none}
+  .imgzone .hint{font-size:12.5px;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;
+    font-size:13px;background:#fff;color:var(--text);font-family:inherit}
+  textarea{font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{cursor:pointer;border:none;border-radius:6px;padding:8px 16px;font-size:13px;
+    font-weight:600;background:var(--primary);color:#fff}
+  button:hover{background:var(--primary-d)}
+  button.ghost{background:#eef2f7;color:var(--text)}
+  button.ghost:hover{background:#e2e8f0}
+  button.danger{background:#fee2e2;color:var(--err)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .drop{border:2px dashed var(--border);border-radius:10px;padding:26px;text-align:center;
+    color:var(--muted);background:#fafbfc;cursor:pointer}
+  .drop.hover{border-color:var(--primary);background:#eff6ff}
+  .files{margin-top:10px;font-size:13px}
+  .files div{padding:4px 8px;background:#f1f5f9;border-radius:5px;margin:4px 0;display:flex;
+    justify-content:space-between}
+  .files .x{cursor:pointer;color:var(--err);font-weight:700}
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#eef2f7;color:var(--muted)}
+  .badge.rule{background:var(--warnbg);color:var(--warn)}
+  .log{font-size:12px;color:var(--muted);white-space:pre-wrap;max-height:120px;overflow:auto;
+    background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:8px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border:1px solid var(--border);padding:5px 6px;text-align:left}
+  th{background:#f1f5f9;font-weight:600;white-space:nowrap}
+  td input{width:100%;border:1px solid transparent;padding:4px;background:transparent}
+  td input:focus{border-color:var(--primary);background:#fff}
+  .tablewrap{overflow:auto;max-height:520px;border:1px solid var(--border);border-radius:8px}
+  .shipgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px}
+  .warnbox{background:var(--warnbg);border:1px solid #fde68a;color:var(--warn);
+    padding:8px 12px;border-radius:6px;font-size:12.5px;margin-bottom:12px}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .rulelist{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto}
+  .ruleitem{border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;background:#fafbfc}
+  .ruleitem:hover{border-color:var(--primary);background:#eff6ff}
+  .ruleitem.sel{border-color:var(--primary);background:#dbeafe}
+  .ruleitem .nm{font-weight:600}
+  .ruleitem .mt{font-size:11px;color:var(--muted);margin-top:2px}
+  .tag{font-size:10px;padding:1px 7px;border-radius:10px;background:#eef2f7;color:var(--muted);margin-left:6px}
+  .tag.packing{background:#ecfdf5;color:var(--ok)}
+  .tag.invoice{background:#eff6ff;color:var(--primary)}
+  .tag.customs{background:#fef3c7;color:var(--warn)}
+  #editorPane{display:grid;grid-template-columns:300px 1fr;gap:14px}
+  @media(max-width:900px){#editorPane{grid-template-columns:1fr}}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚓ 单证提取填充工具</h1>
+  <nav>
+    <button id="tabConvert" class="active" onclick="showTab('convert')">转换 / 导出</button>
+    <button id="tabRules" onclick="showTab('rules')">规则编辑器</button>
+    <button id="tabSku" onclick="showTab('sku')">客户SKU管理</button>
+    <button id="tabPl" onclick="showTab('pl')">Packing List → 托书</button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== 转换 / 导出 ===================== -->
+  <div id="convertPane">
+    <div class="card">
+      <h2>① 配置（模板路径 / 可选 LLM）</h2>
+      <div class="grid">
+        <div><label>模板路径（固定模板 xlsx）</label>
+          <input id="cfg_tpl" placeholder="//server/.../客户货物运输托运书（系统下单用）.xlsx"></div>
+        <div><label>输出文件名</label>
+          <input id="cfg_out" placeholder="客户货物运输托运书（系统下单用）-已填.xlsx"></div>
+        <div><label>LLM 接口（可选，留空=纯规则）</label>
+          <input id="cfg_endpoint" placeholder="https://api.hunyuan.cloud.tencent.com/v1"></div>
+        <div><label>模型名（可选）</label>
+          <input id="cfg_model" placeholder="hunyuan-turbo"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" onclick="saveCfg()">保存配置</button>
+        <span class="note">抽取由 <b>rules.json</b> 规则驱动，<b>零 AI 依赖</b>；LLM 仅作为可选增强。</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 导入资料并转换</h2>
+      <div class="drop" id="drop">点击或拖拽多份文件到此处（支持 PDF / .xls / .xlsx：装箱单 / 发票 / 报关单）</div>
+      <input type="file" id="fileInput" accept=".pdf,.xls,.xlsx" multiple hidden>
+      <div class="files" id="fileList"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnConvert" onclick="convert()">🔄 转换（预览提取内容）</button>
+        <span class="badge rule" id="methodBadge" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="card" id="previewCard" style="display:none">
+      <h2>③ 预览 / 编辑</h2>
+      <div class="warnbox">⚠️ 下方「单票信息」仅供人工核对——固定模板 <b>只有货物明细列</b>，没有发货人/目的港/发票号等对应列，故不直接写入模板。请确认规则抽取是否正确。</div>
+
+      <div style="margin-bottom:14px">
+        <div style="font-weight:600;margin-bottom:6px">单票信息（核对用，不写入模板）</div>
+        <div class="shipgrid" id="shipGrid"></div>
+      </div>
+
+      <div style="font-weight:600;margin:6px 0 8px">货物明细（将写入模板，可编辑）</div>
+      <div class="tablewrap">
+        <table id="itemTable">
+          <thead><tr>
+            <th>中文品名</th><th>英文品名</th><th>型号</th><th>海关编码</th><th>品牌</th>
+            <th>总箱数</th><th>单箱净重</th><th>单箱毛重</th>
+            <th>单箱个数</th><th>产品总个数</th><th>申报单价</th>
+            <th>申报总价</th><th>币种</th><th></th>
+          </tr></thead>
+          <tbody id="itemBody"></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" onclick="addRow()">＋ 增加一行</button>
+        <button id="btnExport" onclick="exportXlsx()">📥 导出已填文档</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 客户 SKU 管理 ===================== -->
+  <div id="skuPane" class="hidden">
+    <div class="card">
+      <h2>客户 SKU 产品库（JSON 持久化）</h2>
+      <div class="row">
+        <input id="skuSearch" placeholder="搜索 SKU / 中文名 / 英文名 / 品牌" style="flex:1" oninput="loadSkus()">
+        <button class="ghost" onclick="showSkuForm()">＋ 新增 SKU</button>
+      </div>
+    </div>
+
+    <div class="card" id="skuFormCard" style="display:none">
+      <h2 id="skuFormTitle">新增 SKU</h2>
+      <div class="skugrid">
+        <div class="field span2"><label>SKU 码 *</label><input id="f_sku"></div>
+        <div class="field"><label>品牌</label><input id="f_brand"></div>
+        <div class="field"><label>海关编码</label><input id="f_hs_code"></div>
+        <div class="field"><label>品牌类型</label><input id="f_brand_type" placeholder="境外品牌（贴牌生产）"></div>
+        <div class="field"><label>带电/磁</label><input id="f_electric_magnetic" placeholder="普货"></div>
+
+        <div class="field span2"><label>中文品名</label><input id="f_cn_name"></div>
+        <div class="field span2"><label>英文品名</label><input id="f_en_name"></div>
+        <div class="field"><label>型号</label><input id="f_model"></div>
+        <div class="field"><label>用途</label><input id="f_purpose"></div>
+        <div class="field"><label>材质(中)</label><input id="f_material_cn"></div>
+        <div class="field"><label>材质(英)</label><input id="f_material_en"></div>
+
+        <div class="field"><label>每箱个数</label><input id="f_qty_per_ctn"></div>
+        <div class="field"><label>申报单价</label><input id="f_unit_price"></div>
+        <div class="field"><label>申报币种</label><input id="f_currency" value="USD"></div>
+        <div class="field"><label>采购单价</label><input id="f_po_price"></div>
+        <div class="field"><label>采购币种</label><input id="f_po_currency" value="CNY"></div>
+        <div class="field"><label>长(cm)</label><input id="f_length"></div>
+
+        <div class="field"><label>宽(cm)</label><input id="f_width"></div>
+        <div class="field"><label>高(cm)</label><input id="f_height"></div>
+        <div class="field"><label>单箱净重</label><input id="f_net_per_ctn"></div>
+        <div class="field"><label>单箱毛重</label><input id="f_gross_per_ctn"></div>
+        <div class="field"><label>总箱数</label><input id="f_total_cartons"></div>
+        <div class="field"><label>总数量</label><input id="f_total_qty"></div>
+
+        <div class="field span2"><label>总价</label><input id="f_total_price"></div>
+        <div class="field span2"><label>平台链接</label><input id="f_product_link"></div>
+        <div class="field span2"><label>亚马逊内部编号</label><input id="f_reference_id"></div>
+      </div>
+
+      <div class="imgzone" id="skuImgZone" style="margin-top:12px">
+        <img id="f_img_preview" alt="产品图片预览">
+        <div class="hint" id="imgHint">📷 拖拽图片到此 · 或 Ctrl+V 粘贴截图</div>
+        <button type="button" class="ghost" id="imgPickBtn">选择文件</button>
+        <input type="file" id="f_image" accept="image/*" hidden>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button onclick="saveSku()">💾 保存</button>
+        <button class="ghost" onclick="hideSkuForm()">取消</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tablewrap">
+        <table id="skuTable"><thead><tr>
+          <th>SKU</th><th>中文名</th><th>英文名</th><th>品牌</th><th>海关编码</th>
+          <th>申报单价</th><th>图片</th><th>操作</th>
+        </tr></thead><tbody id="skuBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== Packing List → 托书 ===================== -->
+  <div id="plPane" class="hidden">
+    <div class="card">
+      <h2>Packing List → 托书（按票生成，单票一票一份）</h2>
+      <div class="note">支持多票/单票 Packing List。系统自动按「地址栏」拆分票数，跳过工厂总数，提取仓库代码/ FBA 单号 / 亚马逊内部编号，并生成 FBA 箱号连号。</div>
+      <div class="drop" id="plDrop">点击或拖拽 Packing List (.xlsx) 到此处</div>
+      <input type="file" id="plFile" accept=".xlsx,.xls" hidden>
+      <div class="row" style="margin-top:10px">
+        <button id="btnParse" onclick="parsePL()">🔍 解析 Packing List</button>
+        <span id="plInfo" class="note"></span>
+      </div>
+    </div>
+    <div id="plResult"></div>
+  </div>
+
+  <!-- ===================== 规则编辑器 ===================== -->
+  <div id="rulesPane" class="hidden">
+    <div class="card">
+      <h2>规则编辑器 · 自助搭建抽取框架</h2>
+      <div class="note">规则为 JSON，零 AI 即可工作。左侧点选规则进行查看/修改；改完点「保存此规则」。拿一份真实文档点「测试」可立即看抽取效果。</div>
+    </div>
+    <div class="card">
+      <div id="editorPane">
+        <div>
+          <div class="row" style="margin-bottom:8px">
+            <button class="ghost" onclick="newRule()">＋ 新建规则</button>
+          </div>
+          <div class="rulelist" id="ruleList"></div>
+        </div>
+        <div>
+          <div class="row" style="margin-bottom:8px">
+            <select id="ruleSel" onchange="loadRule(this.value)" style="flex:1"></select>
+            <button onclick="saveRule()">💾 保存此规则</button>
+            <button class="danger" onclick="delRule()">🗑 删除</button>
+          </div>
+          <textarea id="ruleJson" rows="22" style="width:100%"></textarea>
+          <div class="hint">字段说明：id 唯一；doc_type ∈ packing|invoice|customs；match 含 any_text/any_filename 匹配条件；mode ∈ table|text|text_block|grid_relative。</div>
+
+          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+            <div style="font-weight:600;margin-bottom:6px">用文档测试当前规则</div>
+            <div class="row">
+              <input type="file" id="testFile" accept=".pdf,.xls,.xlsx" style="flex:1">
+              <button onclick="testRule()">▶ 测试</button>
+            </div>
+            <div class="tablewrap" style="margin-top:8px;max-height:300px">
+              <table id="testTable"><thead><tr>
+                <th>中文品名</th><th>英文品名</th><th>型号</th><th>海关编码</th><th>品牌</th>
+                <th>总箱数</th><th>单箱净重</th><th>单箱毛重</th><th>单箱个数</th>
+                <th>总个数</th><th>单价</th><th>总价</th><th>币种</th>
+              </tr></thead><tbody id="testBody"></tbody></table>
+            </div>
+            <div class="hint" id="testMsg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>状态 / 日志</h2>
+    <div class="log" id="log">就绪。</div>
+  </div>
+</div>
+
+<script>
+const files = [];   // {name, data}
+let shipment = {}, items = [];
+let allRules = {rules:[]};
+
+function log(msg){ const el=document.getElementById('log');
+  el.textContent += "\n" + msg; el.scrollTop = 1e9; }
+function showTab(t){
+  document.getElementById('convertPane').classList.toggle('hidden', t!=='convert');
+  document.getElementById('rulesPane').classList.toggle('hidden', t!=='rules');
+  document.getElementById('skuPane').classList.toggle('hidden', t!=='sku');
+  document.getElementById('plPane').classList.toggle('hidden', t!=='pl');
+  document.getElementById('tabConvert').classList.toggle('active', t==='convert');
+  document.getElementById('tabRules').classList.toggle('active', t==='rules');
+  document.getElementById('tabSku').classList.toggle('active', t==='sku');
+  document.getElementById('tabPl').classList.toggle('active', t==='pl');
+  if(t==='rules') loadRules();
+  if(t==='sku') loadSkus();
+  if(t==='pl') loadAllSkus();
+}
+
+// ---------- 配置 ----------
+async function loadCfg(){
+  try{
+    const r = await fetch('/api/config'); const c = await r.json();
+    document.getElementById('cfg_tpl').value = c.template_path||"";
+    document.getElementById('cfg_out').value = c.output_name||"客户货物运输托运书（系统下单用）-已填.xlsx";
+    document.getElementById('cfg_endpoint').value = c.llm?.endpoint||"";
+    document.getElementById('cfg_model').value = c.llm?.model||"";
+  }catch(e){ log("加载配置失败: "+e); }
+}
+async function saveCfg(){
+  const fd = new FormData();
+  fd.append('template_path', document.getElementById('cfg_tpl').value);
+  fd.append('output_dir', '');
+  fd.append('endpoint', document.getElementById('cfg_endpoint').value);
+  fd.append('model', document.getElementById('cfg_model').value);
+  fd.append('api_key', '__UNCHANGED__');
+  const r = await fetch('/api/save_config',{method:'POST',body:fd});
+  log(r.ok ? "配置已保存。" : "保存失败。");
+}
+
+// ---------- 文件 ----------
+const drop = document.getElementById('drop'), input = document.getElementById('fileInput');
+drop.onclick = ()=>input.click();
+drop.ondragover = e=>{e.preventDefault();drop.classList.add('hover');};
+drop.ondragleave = ()=>drop.classList.remove('hover');
+drop.ondrop = e=>{e.preventDefault();drop.classList.remove('hover'); handleFiles(e.dataTransfer.files);};
+input.onchange = ()=>handleFiles(input.files);
+function handleFiles(list){
+  for(const f of list){
+    const low=f.name.toLowerCase();
+    if(!(low.endsWith('.pdf')||low.endsWith('.xls')||low.endsWith('.xlsx'))){
+      log("跳过不支持的文件: "+f.name); continue; }
+    const reader = new FileReader();
+    reader.onload = ev=>{ files.push({name:f.name, data:ev.target.result}); renderFiles(); };
+    reader.readAsArrayBuffer(f);
+  }
+}
+function renderFiles(){
+  const el = document.getElementById('fileList'); el.innerHTML="";
+  files.forEach((f,i)=>{
+    const d=document.createElement('div');
+    d.innerHTML = `<span>📄 ${f.name}</span><span class="x" data-i="${i}">✕</span>`;
+    el.appendChild(d);
+  });
+  el.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ files.splice(+x.dataset.i,1); renderFiles(); });
+}
+
+// ---------- 转换 ----------
+async function convert(){
+  if(!files.length){ log("请先导入文件。"); return; }
+  document.getElementById('btnConvert').disabled = true;
+  log("正在按规则解析并提取…");
+  const fd = new FormData();
+  files.forEach(f=>fd.append('files', new Blob([f.data]), f.name));
+  try{
+    const r = await fetch('/api/convert',{method:'POST',body:fd});
+    const j = await r.json();
+    if(!r.ok){ log("转换失败: "+(j.error||"未知错误")); return; }
+    shipment = j.shipment||{}; items = j.items||[];
+    renderShip(); renderItems();
+    document.getElementById('previewCard').style.display='block';
+    const b=document.getElementById('methodBadge'); b.style.display='inline-block';
+    b.className='badge rule'; b.textContent='规则抽取（零 AI）';
+    log("✅ 规则解析完成，共 "+items.length+" 行货物。请核对。");
+  }catch(e){ log("转换异常: "+e); }
+  finally{ document.getElementById('btnConvert').disabled=false; }
+}
+
+function renderShip(){
+  const g=document.getElementById('shipGrid'); g.innerHTML="";
+  const fields=[['invoice_no','发票号'],['pi_no','PI号'],['trade_term','贸易条款'],
+    ['port_of_loading','起运港'],['port_of_discharge','目的港'],['shipper','发货人'],
+    ['consignee','收货人'],['total_value','总值'],['currency','币种']];
+  fields.forEach(([k,label])=>{
+    const d=document.createElement('div');
+    d.innerHTML=`<label>${label}</label><input data-ship="${k}" value="${shipment[k]??''}">`;
+    g.appendChild(d);
+  });
+  g.querySelectorAll('input').forEach(i=>i.oninput=e=>shipment[e.target.dataset.ship]=e.target.value);
+}
+
+const COLS=[['cn_name'],['en_name'],['model'],['hs_code'],['brand'],
+  ['total_cartons'],['net_per_ctn'],['gross_per_ctn'],['qty_per_ctn'],
+  ['total_qty'],['unit_price'],['total_price'],['currency']];
+function renderItems(){
+  const tb=document.getElementById('itemBody'); tb.innerHTML="";
+  items.forEach((it,idx)=>tb.appendChild(rowEl(it,idx)));
+}
+function rowEl(it,idx){
+  const tr=document.createElement('tr');
+  COLS.forEach(([k])=>{
+    const td=document.createElement('td');
+    const inp=document.createElement('input');
+    inp.value = it[k]??'';
+    inp.oninput=e=>items[idx][k]=e.target.value;
+    td.appendChild(inp); tr.appendChild(td);
+  });
+  const td=document.createElement('td');
+  const btn=document.createElement('button'); btn.className='ghost'; btn.textContent='🗑';
+  btn.onclick=()=>{ items.splice(idx,1); renderItems(); };
+  td.appendChild(btn); tr.appendChild(td);
+  return tr;
+}
+function addRow(){ items.push({cn_name:'',en_name:'',model:'',hs_code:'',brand:'',
+  total_cartons:'',net_per_ctn:'',gross_per_ctn:'',qty_per_ctn:'',total_qty:'',
+  unit_price:'',total_price:'',currency:'USD'}); renderItems(); }
+
+// ---------- 导出 ----------
+async function exportXlsx(){
+  if(!items.length){ log("没有可导出数据。"); return; }
+  document.getElementById('btnExport').disabled=true;
+  log("正在填模板并导出…");
+  try{
+    const r = await fetch('/api/export',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({items,
+        template_path: document.getElementById('cfg_tpl').value,
+        output_name: document.getElementById('cfg_out').value || '客户货物运输托运书（系统下单用）-已填.xlsx'})});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); log("导出失败: "+(j.error||r.status)); return; }
+    const blob=await r.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=document.getElementById('cfg_out').value || '客户货物运输托运书（系统下单用）-已填.xlsx';
+    a.click(); URL.revokeObjectURL(a.href);
+    log("✅ 已导出并下载。");
+  }catch(e){ log("导出异常: "+e); }
+  finally{ document.getElementById('btnExport').disabled=false; }
+}
+
+// ---------- 规则编辑器 ----------
+async function loadRules(){
+  try{
+    const r = await fetch('/api/rules'); allRules = await r.json();
+    const sel=document.getElementById('ruleSel'); sel.innerHTML='';
+    allRules.rules.forEach(rl=>{
+      const o=document.createElement('option'); o.value=rl.id; o.textContent=rl.name; sel.appendChild(o);
+    });
+    renderRuleList();
+    if(allRules.rules.length) loadRule(allRules.rules[0].id);
+  }catch(e){ log("加载规则失败: "+e); }
+}
+function renderRuleList(){
+  const el=document.getElementById('ruleList'); el.innerHTML='';
+  allRules.rules.forEach(rl=>{
+    const d=document.createElement('div'); d.className='ruleitem'; d.dataset.id=rl.id;
+    const match = (rl.match?.any_filename||[]).concat(rl.match?.any_text||[]).join(' / ');
+    d.innerHTML=`<div class="nm">${rl.name}<span class="tag ${rl.doc_type}">${rl.doc_type}</span></div>
+      <div class="mt">匹配: ${match||'(无)'}</div>`;
+    d.onclick=()=>{ document.getElementById('ruleSel').value=rl.id; loadRule(rl.id); };
+    el.appendChild(d);
+  });
+}
+function loadRule(id){
+  const rl=allRules.rules.find(r=>r.id===id);
+  if(!rl) return;
+  document.getElementById('ruleJson').value = JSON.stringify(rl,null,2);
+  document.querySelectorAll('.ruleitem').forEach(e=>e.classList.toggle('sel', e.dataset.id===id));
+}
+function newRule(){
+  const id='rule_'+Date.now();
+  const skel={id, name:'新规则', doc_type:'packing',
+    match:{any_filename:[], any_text:[]}, mode:'text',
+    patterns:[{regex:'^(\\w+)\\s+(\\d+)', flags:'', exclude_text:[],
+      fields:{en_name:{group:1}, total_qty:{group:2, as:'num'}}}]};
+  allRules.rules.push(skel);
+  const sel=document.getElementById('ruleSel');
+  const o=document.createElement('option'); o.value=id; o.textContent=skel.name; sel.appendChild(o);
+  renderRuleList(); document.getElementById('ruleSel').value=id; loadRule(id);
+  log("已新建空白规则，编辑后保存。");
+}
+function saveRule(){
+  let rl;
+  try{ rl=JSON.parse(document.getElementById('ruleJson').value); }
+  catch(e){ log("JSON 解析错误，未保存: "+e); return; }
+  const i=allRules.rules.findIndex(r=>r.id===rl.id);
+  if(i>=0) allRules.rules[i]=rl; else allRules.rules.push(rl);
+  fetch('/api/rules',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(allRules)})
+    .then(r=>r.json()).then(j=>{
+      if(j.ok){ log("✅ 规则已保存："+rl.name); renderRuleList(); }
+      else log("保存失败："+JSON.stringify(j));
+    }).catch(e=>log("保存异常: "+e));
+}
+function delRule(){
+  const rl=JSON.parse(document.getElementById('ruleJson').value||'{}');
+  if(!rl.id) return;
+  allRules.rules = allRules.rules.filter(r=>r.id!==rl.id);
+  fetch('/api/rules',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(allRules)})
+    .then(()=>{ log("已删除规则："+rl.id); loadRules(); });
+}
+
+async function testRule(){
+  const f=document.getElementById('testFile').files[0];
+  if(!f){ log("请先选择一份文档用于测试。"); return; }
+  const rl=JSON.parse(document.getElementById('ruleJson').value||'{}');
+  if(!rl.id){ log("当前规则无 id，无法测试。"); return; }
+  log("正在用规则「"+rl.name+"」测试 "+f.name+" …");
+  const fd=new FormData(); fd.append('file', f); fd.append('rule_id', rl.id);
+  const r=await fetch('/api/rules/test',{method:'POST',body:fd});
+  const j=await r.json();
+  const msg=document.getElementById('testMsg'); const tb=document.getElementById('testBody'); tb.innerHTML='';
+  if(!j.matched){ msg.textContent='未匹配：'+(j.message||''); return; }
+  msg.textContent=`匹配规则：${j.rule_name}（${j.doc_type}），抽得 ${j.items.length} 行`;
+  j.items.forEach(it=>{
+    const tr=document.createElement('tr');
+    COLS.forEach(([k])=>{ const td=document.createElement('td'); td.textContent=it[k]??''; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+}
+
+// ============ 客户 SKU 管理 ============
+let allSkus = [];
+let editingSku = null;     // 非 null = 编辑模式；null = 新增模式
+let pendingImage = null;   // 通过粘贴/拖拽暂存的产品图片 File
+function esc(v){ return (v==null?'':v.toString()).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function quote(v){ return '"'+String(v==null?'':v).replace(/"/g,'\\"')+'"'; }
+function imgTag(path){ if(!path) return ''; const bn=path.split(/[\\/]/).pop(); return `<img src="/sku_images/${encodeURIComponent(bn)}" style="max-height:40px;border:1px solid var(--border);border-radius:4px">`; }
+
+async function loadSkus(){
+  const kw = document.getElementById('skuSearch').value;
+  const r = await fetch('/api/customer_skus?keyword='+encodeURIComponent(kw));
+  const j = await r.json();
+  allSkus = j.skus || [];
+  const tb = document.getElementById('skuBody'); tb.innerHTML='';
+  allSkus.forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${esc(s.sku)}</td><td>${esc(s.cn_name)}</td><td>${esc(s.en_name)}</td>
+      <td>${esc(s.brand)}</td><td>${esc(s.hs_code)}</td><td>${esc(s.unit_price)}</td>
+      <td>${imgTag(s.image_path)}</td>
+      <td class="sku-actions"></td>`;
+    tb.appendChild(tr);
+  });
+  // 绑定事件：用 addEventListener 替代内联 onclick
+  document.querySelectorAll('.sku-actions').forEach((el, idx) => {
+    const sku = allSkus[idx];
+    if(!sku) return;
+    // 编辑按钮
+    const editBtn = document.createElement('button');
+    editBtn.className = 'ghost';
+    editBtn.textContent = '编辑';
+    editBtn.addEventListener('click', () => showSkuForm(sku.sku));
+    el.appendChild(editBtn);
+    // 删除按钮
+    const delBtn = document.createElement('button');
+    delBtn.className = 'danger';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => delSku(sku.sku));
+    el.appendChild(delBtn);
+  });
+}
+function showSkuForm(sku){
+  const card=document.getElementById('skuFormCard');
+  card.style.display='block';
+  editingSku = sku || null;
+  pendingImage = null;
+  document.getElementById('skuFormTitle').textContent = sku? '编辑 SKU: '+sku : '新增 SKU';
+  document.getElementById('f_sku').value = sku||'';
+  document.getElementById('f_sku').disabled = !!sku;
+  const flds=['brand','cn_name','en_name','hs_code','brand_type','material_cn','material_en','model','purpose','electric_magnetic','qty_per_ctn','unit_price','currency','po_price','po_currency','length','width','height','net_per_ctn','gross_per_ctn','total_cartons','total_qty','total_price','product_link','reference_id'];
+  flds.forEach(f=>{ const el=document.getElementById('f_'+f); if(el) el.value=''; });
+  document.getElementById('f_img_preview').style.display='none';
+  document.getElementById('f_image').value='';
+  const ih=document.getElementById('imgHint'); if(ih) ih.style.display='';
+  if(sku){
+    const s=allSkus.find(x=>x.sku===sku);
+    if(s){ flds.forEach(f=>{ const el=document.getElementById('f_'+f); if(el&&s[f]!=null) el.value=s[f]; });
+      if(s.image_path){ const bn=s.image_path.split(/[\\/]/).pop(); const pv=document.getElementById('f_img_preview'); pv.src='/sku_images/'+encodeURIComponent(bn); pv.style.display='inline-block'; const ih=document.getElementById('imgHint'); if(ih) ih.style.display='none'; } }
+  }
+  card.scrollIntoView({behavior:'smooth'});
+}
+function hideSkuForm(){ document.getElementById('skuFormCard').style.display='none'; editingSku=null; pendingImage=null; }
+async function saveSku(){
+  const flds=['sku','brand','cn_name','en_name','hs_code','brand_type','material_cn','material_en','model','purpose','electric_magnetic','qty_per_ctn','unit_price','currency','po_price','po_currency','length','width','height','net_per_ctn','gross_per_ctn','total_cartons','total_qty','total_price','product_link','reference_id'];
+  const body={};
+  flds.forEach(f=>{ const v=document.getElementById('f_'+f).value.trim(); body[f]=v; });
+  if(!body.sku){ alert('SKU 不能为空'); return; }
+  // 编辑模式发 update（合并保留未改字段）；新增模式发 add（后端查重报错）
+  body.op = editingSku ? 'update' : 'add';
+  const r=await fetch('/api/customer_skus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!r.ok){ alert('保存失败: '+(j.error||'')); return; }
+  // 上传图片：优先用粘贴/拖拽暂存的图片，否则用文件选择框
+  const imgInput=document.getElementById('f_image');
+  const imgFile = pendingImage || (imgInput.files.length ? imgInput.files[0] : null);
+  if(imgFile){
+    const fd=new FormData(); fd.append('file', imgFile);
+    const ir=await fetch('/api/customer_skus/'+encodeURIComponent(body.sku)+'/image',{method:'POST',body:fd});
+    if(!ir.ok){ const ij=await ir.json().catch(()=>({})); alert('图片保存失败: '+(ij.error||'')); }
+  }
+  hideSkuForm(); loadSkus();
+}
+async function delSku(sku){
+  if(!confirm('确认删除 SKU: '+sku+' ?')) return;
+  try{
+    const r = await fetch('/api/customer_skus/'+encodeURIComponent(sku),{method:'DELETE'});
+    if(!r.ok){ alert('删除失败（HTTP '+r.status+'）'); return; }
+  }catch(e){ alert('删除请求出错: '+e); return; }
+  loadSkus();
+}
+
+// ============ Packing List → 托书 ============
+let plData=null;
+async function loadAllSkus(){ if(allSkus.length) return; const r=await fetch('/api/customer_skus'); const j=await r.json(); allSkus=j.skus||[]; }
+
+const plDrop=document.getElementById('plDrop'), plInput=document.getElementById('plFile');
+plDrop.onclick=()=>plInput.click();
+plDrop.ondragover=e=>{e.preventDefault();plDrop.classList.add('hover');};
+plDrop.ondragleave=()=>plDrop.classList.remove('hover');
+plDrop.ondrop=e=>{e.preventDefault();plDrop.classList.remove('hover'); if(e.dataTransfer.files.length) plInput.files=e.dataTransfer.files;};
+plInput.onchange=()=>{ if(plInput.files.length) document.getElementById('plInfo').textContent='已选择: '+plInput.files[0].name; };
+function setPendingImage(file){
+  if(!file || !file.type || !file.type.startsWith('image/')) return;
+  pendingImage = file;
+  const rd=new FileReader();
+  rd.onload=ev=>{ const pv=document.getElementById('f_img_preview'); pv.src=ev.target.result; pv.style.display='inline-block';
+    const h=document.getElementById('imgHint'); if(h) h.style.display='none'; };
+  rd.readAsDataURL(file);
+}
+document.getElementById('f_image').onchange=e=>{ if(e.target.files[0]) setPendingImage(e.target.files[0]); };
+// 图片区：点击选文件 + 拖拽接收
+const imgZone=document.getElementById('skuImgZone');
+imgZone.addEventListener('click',e=>{ if(e.target.id==='imgPickBtn') return; document.getElementById('f_image').click(); });
+document.getElementById('imgPickBtn').addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('f_image').click(); });
+['dragenter','dragover'].forEach(ev=>imgZone.addEventListener(ev,e=>{e.preventDefault(); imgZone.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>imgZone.addEventListener(ev,e=>{e.preventDefault(); imgZone.classList.remove('hover');}));
+imgZone.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) setPendingImage(e.dataTransfer.files[0]); });
+// 截图粘贴：当 SKU 表单展开时，Ctrl+V 粘贴剪贴板中的图片
+document.addEventListener('paste',e=>{
+  const card=document.getElementById('skuFormCard');
+  if(!card || card.style.display!=='block') return;
+  if(!e.clipboardData) return;
+  for(const it of e.clipboardData.items){
+    if(it.type && it.type.startsWith('image/')){ const f=it.getAsFile(); if(f){ setPendingImage(f); e.preventDefault(); } break; }
+  }
+});
+
+async function parsePL(){
+  if(!plInput.files.length){ alert('请先选择 Packing List 文件'); return; }
+  document.getElementById('btnParse').disabled=true;
+  const fd=new FormData(); fd.append('file', plInput.files[0]);
+  try{
+    const r=await fetch('/api/parse_packing_list',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!r.ok){ alert('解析失败: '+(j.error||'')); return; }
+    plData=j;
+    document.getElementById('plInfo').textContent = `解析完成：${j.ticket_count} 票（${j.is_multi?'多票':'单票'}）`+(j.factory_total?'，已跳过工厂总数':'');
+    renderTickets();
+  }catch(e){ alert('解析异常: '+e); }
+  finally{ document.getElementById('btnParse').disabled=false; }
+}
+function libOptions(cur){
+  let o=`<option value="">-- 从库选择 --</option>`;
+  allSkus.forEach(s=>{ o+=`<option value="${esc(s.sku)}" ${s.sku===cur?'selected':''}>${esc(s.sku)}</option>`; });
+  return o;
+}
+function renderTickets(){
+  const root=document.getElementById('plResult'); root.innerHTML='';
+  if(!plData) return;
+  plData.tickets.forEach((t,ti)=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<h2>票 #${ti+1}</h2>
+      <div class="shipgrid">
+        <div><label>仓库代码(AB)</label><input data-t="${ti}" data-k="warehouse" value="${esc(t.warehouse)}"></div>
+        <div><label>FBA 单号</label><input data-t="${ti}" data-k="fba" value="${esc(t.fba)}"></div>
+        <div><label>亚马逊内部编号(AA)</label><input data-t="${ti}" data-k="internal" value="${esc(t.internal)}"></div>
+      </div>
+      <div class="tablewrap" style="margin-top:10px"><table><thead><tr>
+        <th>SKU（可改）</th><th>匹配</th><th>从库选择</th><th>中文名</th><th>英文名</th><th>海关编码</th>
+        <th>品牌</th><th>型号</th><th>申报单价</th><th>箱数</th><th>数量</th><th>图片</th>
+      </tr></thead><tbody id="plBody_${ti}"></tbody></table></div>`;
+    root.appendChild(card);
+    const tb=card.querySelector(`#plBody_${ti}`);
+    t.products.forEach((p,pi)=>{
+      const rec=p.record||{};
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input data-t="${ti}" data-p="${pi}" data-f="sku" value="${esc(p.sku)}" style="min-width:150px"></td>
+        <td>${p.matched?'✅':'⚠️未匹配'}</td>
+        <td><select data-t="${ti}" data-p="${pi}" data-act="libsel">${libOptions(p.sku)}</select></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="cn_name" value="${esc(rec.cn_name)}" style="min-width:120px"></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="en_name" value="${esc(rec.en_name)}" style="min-width:160px"></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="hs_code" value="${esc(rec.hs_code)}" style="min-width:90px"></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="brand" value="${esc(rec.brand)}"></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="model" value="${esc(rec.model)}"></td>
+        <td><input data-t="${ti}" data-p="${pi}" data-rf="unit_price" value="${esc(rec.unit_price)}" style="width:70px"></td>
+        <td>${esc(p.ctn)}</td><td>${esc(p.qty)}</td>
+        <td>${imgTag(rec.image_path)}</td>`;
+      tb.appendChild(tr);
+    });
+  });
+  root.querySelectorAll('input[data-t]').forEach(inp=>{
+    inp.oninput=e=>{
+      const ti=+e.target.dataset.t, p=e.target.dataset.p, k=e.target.dataset.k, f=e.target.dataset.f, rf=e.target.dataset.rf;
+      if(k){ plData.tickets[ti][k]=e.target.value; }
+      else if(f){ plData.tickets[ti].products[p].sku=e.target.value; }
+      else if(rf){ const pr=plData.tickets[ti].products[p]; pr.record=pr.record||{}; pr.record[rf]=e.target.value; pr.matched=true; }
+    };
+  });
+  root.querySelectorAll('select[data-act="libsel"]').forEach(sel=>{
+    sel.onchange=e=>{
+      const ti=+e.target.dataset.t, pi=+e.target.dataset.p, sku=e.target.value;
+      if(!sku) return;
+      const lib=allSkus.find(x=>x.sku===sku);
+      if(lib){ const pr=plData.tickets[ti].products[pi]; pr.record=JSON.parse(JSON.stringify(lib)); pr.matched=true; pr.sku=sku; renderTickets(); }
+    };
+  });
+  const genCard=document.createElement('div'); genCard.className='card';
+  genCard.innerHTML=`<button id="btnGen" onclick="generateBookings()">📥 生成托书（每票一份，打包下载）</button>`;
+  root.appendChild(genCard);
+}
+async function generateBookings(){
+  if(!plData||!plData.tickets.length){ alert('没有可生成的数据'); return; }
+  document.getElementById('btnGen').disabled=true;
+  try{
+    const tpl=document.getElementById('cfg_tpl').value;
+    const r=await fetch('/api/generate_bookings',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tickets:plData.tickets, template_path:tpl})});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); alert('生成失败: '+(j.error||r.status)); return; }
+    const blob=await r.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='托书_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'')+'.zip';
+    a.click(); URL.revokeObjectURL(a.href);
+  }catch(e){ alert('生成异常: '+e); }
+  finally{ document.getElementById('btnGen').disabled=false; }
+}
+
+loadCfg();
+// === 自检面板：确认 JS 函数可用、按钮已绑定 ===
+setTimeout(()=>{
+  const dbg = document.createElement('div');
+  dbg.id = '__debug_panel__';
+  dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef3c7;color:#92400e;z-index:99999;padding:6px 12px;font-size:12px;font-family:monospace;display:flex;gap:15px;box-shadow:0 2px 8px rgba(0,0,0,0.15)';
+  const info = [
+    ['showSkuForm', typeof showSkuForm === 'function'],
+    ['delSku', typeof delSku === 'function'],
+    ['saveSku', typeof saveSku === 'function'],
+    ['allSkus', Array.isArray(allSkus) ? allSkus.length : '?'],
+    ['编辑按钮', document.querySelectorAll('button.ghost').length],
+    ['删除按钮', document.querySelectorAll('button.danger').length],
+  ];
+  dbg.innerHTML = '<b>🔍 v2.5 自检</b> ' + info.map(([k,v]) =>
+    '<span style="color:' + (v && v !== 0 ? '#15803d' : '#dc2626') + '">' + k + '=' + JSON.stringify(v) + '</span>'
+  ).join(' | ') + ' <button onclick="this.parentElement.remove()" style="margin-left:auto;padding:1px 8px;font-size:11px">✕ 关闭</button>';
+  document.body.appendChild(dbg);
+}, 800);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pdfplumber
+openpyxl
+python-multipart
+requests
+pywin32; sys_platform == 'win32'
