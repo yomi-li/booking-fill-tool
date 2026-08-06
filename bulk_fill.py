@@ -9,14 +9,16 @@
 - AE PO NO：取亚马逊内部编号（ticket.internal）；
 - AF 预计到仓时间：取生成文档的时间；
 - AG 地址类型：按上传文件文件名判断——含 Amazon→FBA仓，含 Walmart→WAL仓；
-- AH 仓库编码：填仓库代码（WAL 仓必须填，FBA 有则填）；
+- AH 仓库编码：填仓库代码；WAL 仓时仓库代码前加 "W-"（如 TST01 → W-TST01）；
 - AI 及之后所有列（收件国家/地址/邮编/州省/城市/公司/收件人/电话/邮箱/指定路线/
-  报关方式/清关方式/是否递延/收件税号/备注）：一律保留模板原有内容与公式不动。
-
-模板中 R 列(产品总个数 =Q*N)与 T 列(申报总价 =R*S)为公式，保留不动。
+  报关方式/清关方式/是否递延/收件税号/备注）：一律保留模板原有内容与公式不动；
+  其中 R 列(产品总个数 =Q*N)、T 列(申报总价 =R*S)与收件公式列(AI/AJ/AK/AL/AM/
+  AN/AO/AP)：若模板该行未预置公式（模板仅前几行有公式），则按模板 row2 的
+  公式形态补写（行号对应替换），保证公式齐全。
 """
 import datetime
 import os
+import re
 import shutil
 import tempfile
 
@@ -74,6 +76,19 @@ def _has_content(it):
                ("sku", "model", "fba_box_no", "cn_name", "en_name"))
 
 
+def _ensure_formula(ws, r, col, proto):
+    """若第 r 行 col 列不是公式，则按模板 row2 的公式形态（proto[col]）补写，
+    行号替换为 r。VLOOKUP 的 col_index/查找区域照抄模板，保证与模板一致。"""
+    v = ws.cell(r, col).value
+    if isinstance(v, str) and v.startswith("="):
+        return  # 已有公式 → 不动
+    template_formula = (proto or {}).get(col)
+    if not template_formula:
+        return
+    # 公式中行号以独立的 "2" 出现（=Q2*N2 / VLOOKUP(AH2,...)），前后非数字则替换
+    ws.cell(r, col).value = re.sub(r"(?<![0-9])2(?![0-9])", str(r), template_formula)
+
+
 def fill_bulk_template(tickets: list, template_path: str, output_path: str) -> str:
     """tickets: [ {warehouse, fba, internal, source_filename, products/items}, ... ]
     每票生成一行或多行（每产品一行，同票共享序号）。"""
@@ -81,6 +96,15 @@ def fill_bulk_template(tickets: list, template_path: str, output_path: str) -> s
     try:
         wb = openpyxl.load_workbook(local)
         ws = wb[SHEET_NAME]
+
+        # 公式模板：取 row2（模板预置公式的样板行）——R 产品总个数 / T 申报总价 /
+        # AI 收件国家 / AJ 收件地址 / AK 收件邮编 / AL 收件州省 / AM 收件城市 /
+        # AN 收件公司 / AO 收件人 / AP 收件电话（AQ 邮箱模板无公式，不补）
+        FORMULA_PROTO = {}
+        for _col in (18, 20, 35, 36, 37, 38, 39, 40, 41, 42):
+            _v = ws.cell(2, _col).value
+            if isinstance(_v, str) and _v.startswith("="):
+                FORMULA_PROTO[_col] = _v
 
         # 清空数据区 A-AC（保留 R/T 公式）与 AD-AH（将重写）；AI 之后不动
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=KEEP_FROM_COL - 1):
@@ -146,9 +170,16 @@ def fill_bulk_template(tickets: list, template_path: str, output_path: str) -> s
                     eta_cell.number_format = "yyyy-mm-dd hh:mm"
                 # AG 地址类型（按文件名）
                 ws.cell(row=r, column=COL["addr_type"], value=addr_type or None)
-                # AH 仓库编码（WAL 必填 / FBA 有则填）
-                ws.cell(row=r, column=COL["wh_code"], value=wh or None)
-                # AI 及之后：保留原样（含公式）
+                # AH 仓库编码：WAL 仓时仓库代码前加 W-（如 TST01 → W-TST01）
+                wh_val = wh
+                if addr_type == "WAL仓" and wh:
+                    wh_val = "W-" + wh
+                ws.cell(row=r, column=COL["wh_code"], value=wh_val or None)
+                # 公式补齐：R 产品总个数 / T 申报总价 / AI-AQ 收件列——
+                # 模板仅前几行预置公式，写入行若没有公式则按 row2 形态补写（行号替换）。
+                for _col in (18, 20, 35, 36, 37, 38, 39, 40, 41, 42):
+                    _ensure_formula(ws, r, _col, FORMULA_PROTO)
+                # 其余列（AI 及之后）：保留原样（含公式）
                 r += 1
 
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)

@@ -111,7 +111,7 @@ def parse_packing_list(data: bytes, filename: str = ""):
 
 def _parse_block(ws, start, end):
     """解析一个块（不含表头行）。返回 {warehouse,fba,internal,products,is_total} 或 None。"""
-    address_codes = []
+    address_rows = []  # (行号, A列值)——地址栏编码（A 列非空且非表头）
     products = []
     for r in range(start, end + 1):
         a = ws.cell(r, 1).value
@@ -121,7 +121,7 @@ def _parse_block(ws, start, end):
 
         # 地址栏编码：A 列非空且非表头（即使与“合计”同行也要采集，见 260730 文件）
         if a_s and "地址" not in a_s:
-            address_codes.append(a_s)
+            address_rows.append((r, a_s))
 
         if b_s == "合计":
             continue
@@ -146,10 +146,17 @@ def _parse_block(ws, start, end):
     if not products:
         return None
 
-    warehouse = address_codes[0] if len(address_codes) >= 1 else ""
-    fba = address_codes[1] if len(address_codes) >= 2 else ""
-    internal = address_codes[2] if len(address_codes) >= 3 else ""
-    is_total = (len(address_codes) == 0)  # 无地址栏 = 工厂总数
+    warehouse = address_rows[0][1] if len(address_rows) >= 1 else ""
+    fba = address_rows[1][1] if len(address_rows) >= 2 else ""
+    # 亚马逊内部编号：只能取 FBA 单号行【紧邻的下一行】的 A 列值。
+    # 该行为空 = 本票没有亚马逊内部编号 → 保持空，绝不从其他栏位抓数值。
+    internal = ""
+    if len(address_rows) >= 2:
+        nxt_r = address_rows[1][0] + 1
+        nxt_v = ws.cell(nxt_r, 1).value
+        if nxt_v is not None and str(nxt_v).strip() and "地址" not in str(nxt_v):
+            internal = str(nxt_v).strip()
+    is_total = (len(address_rows) == 0)  # 无地址栏 = 工厂总数
 
     return {
         "warehouse": warehouse,

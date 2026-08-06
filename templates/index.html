@@ -769,24 +769,6 @@ async function generateBookings(mode='single'){
 }
 
 loadCfg();
-// === 自检面板：确认 JS 函数可用、按钮已绑定 ===
-setTimeout(()=>{
-  const dbg = document.createElement('div');
-  dbg.id = '__debug_panel__';
-  dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef3c7;color:#92400e;z-index:99999;padding:6px 12px;font-size:12px;font-family:monospace;display:flex;gap:15px;box-shadow:0 2px 8px rgba(0,0,0,0.15)';
-  const info = [
-    ['showSkuForm', typeof showSkuForm === 'function'],
-    ['delSku', typeof delSku === 'function'],
-    ['saveSku', typeof saveSku === 'function'],
-    ['allSkus', Array.isArray(allSkus) ? allSkus.length : '?'],
-    ['编辑按钮', document.querySelectorAll('button.ghost').length],
-    ['删除按钮', document.querySelectorAll('button.danger').length],
-  ];
-  dbg.innerHTML = '<b>🔍 v2.5 自检</b> ' + info.map(([k,v]) =>
-    '<span style="color:' + (v && v !== 0 ? '#15803d' : '#dc2626') + '">' + k + '=' + JSON.stringify(v) + '</span>'
-  ).join(' | ') + ' <button onclick="this.parentElement.remove()" style="margin-left:auto;padding:1px 8px;font-size:11px">✕ 关闭</button>';
-  document.body.appendChild(dbg);
-}, 800);
 </script>
 </body>
 </html>
