@@ -31,6 +31,9 @@ _*.out
 .DS_Store
 Thumbs.db
 
+# ---- 服务器部署（本地配置，不推）----
+.env
+
 # 注意：以下“必须保留”，不在此忽略：
 #   app.py / *.py 主代码、requirements.txt、Dockerfile、.dockerignore、
 #   config.json、rules.json、assets/（模板）、sku_images/（产品图种子）、
