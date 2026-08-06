@@ -50,8 +50,13 @@
   button.danger{background:#fee2e2;color:var(--err)}
   button:disabled{opacity:.5;cursor:not-allowed}
   .drop{border:2px dashed var(--border);border-radius:10px;padding:26px;text-align:center;
-    color:var(--muted);background:#fafbfc;cursor:pointer}
+    color:var(--muted);background:#fafbfc;cursor:pointer;transition:border-color .2s,background .2s}
   .drop.hover{border-color:var(--primary);background:#eff6ff}
+  .drop.ok{border-color:#10b981;background:#ecfdf5}
+  .drop .ok-tag{display:block;margin-top:10px;color:#059669;font-weight:700;font-size:13px}
+  .drop .ok-tag::before{content:"✓ ";font-size:15px}
+  .file-ok{color:#059669;font-weight:600;font-size:12px;white-space:nowrap}
+  .file-ok::before{content:"✓ "}
   .files{margin-top:10px;font-size:13px}
   .files div{padding:4px 8px;background:#f1f5f9;border-radius:5px;margin:4px 0;display:flex;
     justify-content:space-between}
@@ -333,29 +338,38 @@ async function saveCfg(){
 
 // ---------- 文件 ----------
 const drop = document.getElementById('drop'), input = document.getElementById('fileInput');
+function dropSetOK(el,msg){ el.classList.add('ok'); let t=el.querySelector('.ok-tag');
+  if(!t){ t=document.createElement('div'); t.className='ok-tag'; el.appendChild(t); }
+  t.textContent=msg; }
+function dropReset(el){ el.classList.remove('ok'); const t=el.querySelector('.ok-tag'); if(t) t.remove(); }
 drop.onclick = ()=>input.click();
 drop.ondragover = e=>{e.preventDefault();drop.classList.add('hover');};
 drop.ondragleave = ()=>drop.classList.remove('hover');
 drop.ondrop = e=>{e.preventDefault();drop.classList.remove('hover'); handleFiles(e.dataTransfer.files);};
 input.onchange = ()=>handleFiles(input.files);
 function handleFiles(list){
+  let okCount=0;
   for(const f of list){
     const low=f.name.toLowerCase();
     if(!(low.endsWith('.pdf')||low.endsWith('.xls')||low.endsWith('.xlsx'))){
       log("跳过不支持的文件: "+f.name); continue; }
+    okCount++;
     const reader = new FileReader();
     reader.onload = ev=>{ files.push({name:f.name, data:ev.target.result}); renderFiles(); };
     reader.readAsArrayBuffer(f);
   }
+  if(okCount>0) dropSetOK(drop, `已上传 ${okCount} 个文件，全部就绪`);
 }
 function renderFiles(){
   const el = document.getElementById('fileList'); el.innerHTML="";
   files.forEach((f,i)=>{
     const d=document.createElement('div');
-    d.innerHTML = `<span>📄 ${f.name}</span><span class="x" data-i="${i}">✕</span>`;
+    d.innerHTML = `<span>📄 ${f.name}</span><span style="display:flex;gap:10px;align-items:center"><span class="file-ok">已就绪</span><span class="x" data-i="${i}">✕</span></span>`;
     el.appendChild(d);
   });
-  el.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ files.splice(+x.dataset.i,1); renderFiles(); });
+  el.querySelectorAll('.x').forEach(x=>x.onclick=()=>{ files.splice(+x.dataset.i,1); renderFiles();
+    if(!files.length) dropReset(drop); });
+  if(files.length) dropSetOK(drop, `已上传 ${files.length} 个文件，全部就绪`);
 }
 
 // ---------- 转换 ----------
@@ -617,11 +631,18 @@ let plData=null;
 async function loadAllSkus(){ if(allSkus.length) return; const r=await fetch('/api/customer_skus'); const j=await r.json(); allSkus=j.skus||[]; }
 
 const plDrop=document.getElementById('plDrop'), plInput=document.getElementById('plFile');
+function plMarkOK(name){
+  plDrop.classList.add('ok');
+  let t=plDrop.querySelector('.ok-tag');
+  if(!t){ t=document.createElement('div'); t.className='ok-tag'; plDrop.appendChild(t); }
+  t.textContent='已上传: '+name;
+}
 plDrop.onclick=()=>plInput.click();
 plDrop.ondragover=e=>{e.preventDefault();plDrop.classList.add('hover');};
 plDrop.ondragleave=()=>plDrop.classList.remove('hover');
-plDrop.ondrop=e=>{e.preventDefault();plDrop.classList.remove('hover'); if(e.dataTransfer.files.length) plInput.files=e.dataTransfer.files;};
-plInput.onchange=()=>{ if(plInput.files.length) document.getElementById('plInfo').textContent='已选择: '+plInput.files[0].name; };
+plDrop.ondrop=e=>{e.preventDefault();plDrop.classList.remove('hover');
+  if(e.dataTransfer.files.length){ plInput.files=e.dataTransfer.files; plMarkOK(e.dataTransfer.files[0].name); }};
+plInput.onchange=()=>{ if(plInput.files.length){ document.getElementById('plInfo').textContent='已选择: '+plInput.files[0].name; plMarkOK(plInput.files[0].name); } };
 function setPendingImage(file){
   if(!file || !file.type || !file.type.startsWith('image/')) return;
   pendingImage = file;

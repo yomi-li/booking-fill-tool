@@ -3,6 +3,7 @@ uvicorn
 pdfplumber
 openpyxl
 xlrd
+Pillow
 python-multipart
 requests
 pywin32; sys_platform == 'win32'

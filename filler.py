@@ -14,6 +14,7 @@ Worksheets/Sheets 的索引访问会返回损坏的代理对象（__call__.Range
 每调用一次 fill_template(items, ...) 写入一票（多票请多次调用，分别生成文件）。
 """
 import os
+import io
 import shutil
 import tempfile
 
@@ -36,9 +37,58 @@ COL = {
     "reference_id": 27, "warehouse_code": 28,
     "product_link": 31,
 }
-IMG_COL = 30  # AD 列：图片（浮动）
+IMG_COL = 30  # AD 列：图片
 
 # 模板 LOGO 由 openpyxl 在 load_workbook 时自动保留（浮动图片 + 原锚点）。
+
+
+def _resolve_image(image_path, sku=""):
+    """图片路径跨平台兜底解析（解决换机/云端后绝对路径失效导致图片不显示）：
+    1) 原路径存在 → 直接用；
+    2) 按文件名在 sku_images/ 目录下找（云端/另一台电脑上绝对路径不存在的场景）；
+    3) 按 SKU 码在 sku_images/ 目录下找（扩展名自动探测）。
+    全部找不到返回 None（调用方跳过该行图片）。"""
+    if not image_path:
+        return None
+    if os.path.exists(image_path):
+        return image_path
+    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sku_images")
+    bn = os.path.basename(str(image_path).replace("\\", "/"))
+    if bn:
+        cand = os.path.join(base_dir, bn)
+        if os.path.exists(cand):
+            return cand
+    if sku:
+        for ext in (".png", ".jpg", ".jpeg", ".webp"):
+            cand = os.path.join(base_dir, f"{sku}{ext}")
+            if os.path.exists(cand):
+                return cand
+    return None
+
+
+def _compress_image(src, max_px=240):
+    """把源图等比缩放到 max_px 内并以压缩 PNG 输出到内存。
+    返回 (BytesIO, w_px, h_px)；Pillow 不可用或处理失败时返回 (None,None,None)，
+    调用方回退直接嵌入原图。"""
+    try:
+        from PIL import Image as PILImage
+    except Exception:
+        return None, None, None
+    try:
+        with PILImage.open(src) as im:
+            im = im.convert("RGB")
+            w, h = im.size
+            scale = min(1.0, max_px / max(w, h))
+            if scale < 1.0:
+                im = im.resize((max(1, int(w * scale)), max(1, int(h * scale))),
+                               PILImage.LANCZOS)
+            buf = io.BytesIO()
+            im.save(buf, format="PNG", optimize=True)
+            w, h = im.size
+            buf.seek(0)
+            return buf, w, h
+    except Exception:
+        return None, None, None
 
 def _has_content(it):
     return any(it.get(k) not in (None, "") for k in
@@ -61,30 +111,42 @@ def _copy_template_local(template_path: str) -> str:
     return tmp.name
 
 
-def _add_product_image(ws, row, image_path, target=95):
+def _add_product_image(ws, row, image_path, sku="", target=95):
     """在 AD 列(row) 写入「内嵌」产品图片：用 TwoCellAnchor 把图片钉在该行
     单元格内，图片随行移动、与对应产品行一一对齐；并按图片高度撑开本行行高，
-    保证图片完整落在这一行、不串到下一行。"""
-    if not image_path or not os.path.exists(image_path):
+    保证图片完整落在这一行、不串到下一行。
+
+    写入前先用 Pillow 把图片等比缩放到 240px 内并压缩（解决超大原图 11-12MB
+    被完整嵌入导致 xlsx 巨大、Excel/WPS 解码失败显示空白的问题）；
+    路径失效时按文件名/SKU 码兜底解析；Pillow 不可用或处理失败时回退原图。"""
+    src = _resolve_image(image_path, sku)
+    if not src:
         return
     try:
-        img = XLImage(image_path)
+        buf, w_px, h_px = _compress_image(src)
+        if buf is None:
+            img = XLImage(src)
+            w_px, h_px = img.width, img.height
+        else:
+            img = XLImage(buf)
+            img.width, img.height = w_px, h_px
+        if not w_px or not h_px:
+            return
         # 等比缩放（以高度为主，保证一行能放下）
-        w, h = img.width, img.height
-        if w and h:
-            scale = min(target / float(h), target / float(w), 1.0)
-            img.width = int(w * scale)
-            img.height = int(h * scale)
+        scale = min(target / float(h_px), target / float(w_px), 1.0)
+        disp_w = int(w_px * scale)
+        disp_h = int(h_px * scale)
+        img.width, img.height = disp_w, disp_h
         # 行高按图片高度(像素→点)撑开，+4 留白，保证整图落在该行内
         ws.row_dimensions[row].height = max(
-            ws.row_dimensions[row].height or 15, img.height * 0.75 + 4)
+            ws.row_dimensions[row].height or 15, disp_h * 0.75 + 4)
         # TwoCellAnchor：from=AD{row} 左上角，to=AD{row} 左上角+图片宽高(EMU)
         # 图片即“嵌入”在该单元格、随行移动，与产品行一一对应。
         marker_from = AnchorMarker(col=IMG_COL - 1, row=row - 1, colOff=0, rowOff=0)
         marker_to = AnchorMarker(
             col=IMG_COL - 1, row=row - 1,
-            colOff=pixels_to_EMU(img.width),
-            rowOff=pixels_to_EMU(img.height),
+            colOff=pixels_to_EMU(disp_w),
+            rowOff=pixels_to_EMU(disp_h),
         )
         img.anchor = TwoCellAnchor(_from=marker_from, to=marker_to)
         ws.add_image(img)
@@ -117,14 +179,12 @@ def fill_template(items: list, template_path: str, output_path: str, currency_de
                 ws.cell(row=r, column=col, value=v)
             r += 1
 
-        # 2) 产品浮动图片（AD 列，按数据行）
-        #    注意：openpyxl 在 load_workbook 时已自动保留模板 LOGO（浮动图片），
-        #    无需手动重新注入，避免重复写入。
+        # 2) 产品图片（AD 列，按数据行，内嵌 + 压缩，跨平台路径兜底）
         r = 2
         for it in items:
             if not _has_content(it):
                 continue
-            _add_product_image(ws, r, it.get("image_path"))
+            _add_product_image(ws, r, it.get("image_path"), sku=it.get("sku", ""))
             r += 1
 
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
