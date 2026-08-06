@@ -284,7 +284,14 @@ async def generate_bookings(req: Request):
     except Exception:
         return JSONResponse(status_code=400, content={"error": "无效的 JSON"})
     tickets = body.get("tickets", [])
-    template_path = _resolve_tpl(body.get("template_path") or load_config().get("template_path", ""))
+    # template_mode: "single"（默认，单票模板，每票一份文件）| "bulk"（批量下单模板）
+    template_mode = (body.get("template_mode") or "single").strip().lower()
+    cfg = load_config()
+    if template_mode == "bulk":
+        template_path = _resolve_tpl(body.get("bulk_template_path")
+                                     or cfg.get("bulk_template_path", ""))
+    else:
+        template_path = _resolve_tpl(body.get("template_path") or cfg.get("template_path", ""))
     if not template_path:
         return JSONResponse(status_code=400, content={"error": "未配置模板路径"})
     if not tickets:
@@ -293,24 +300,51 @@ async def generate_bookings(req: Request):
     tmpdir = tempfile.mkdtemp(prefix="booking_")
     out_files = []
     try:
-        for idx, t in enumerate(tickets, 1):
-            items = amazon_pl.build_items(t)
-            if not items:
-                continue
-            wh = (t.get("warehouse") or f"ticket{idx}").strip()
-            fba = (t.get("fba") or "").strip()
-            name = f"托书_{wh}_{fba}.xlsx" if fba else f"托书_{wh}.xlsx"
+        if template_mode == "bulk":
+            # 批量下单模板：所有票合成一个文件，序号 1、2、3…（同票共享序号）
+            rows = []
+            for idx, t in enumerate(tickets, 1):
+                items = amazon_pl.build_items(t)
+                if items:
+                    rows.append({**t, "items": items})
+            if not rows:
+                return JSONResponse(status_code=500, content={"error": "没有可生成的票数据"})
+            name = f"批量下单_{datetime.datetime.now():%Y%m%d_%H%M%S}.xlsx"
             out_path = os.path.join(tmpdir, name)
             try:
-                filler.fill_template(items, template_path, out_path)
+                import bulk_fill
+                bulk_fill.fill_bulk_template(rows, template_path, out_path)
                 out_files.append(out_path)
             except Exception as e:
                 return JSONResponse(status_code=500,
-                                    content={"error": f"票 {wh} 生成失败: {e}"})
+                                    content={"error": f"批量下单模板生成失败: {e}"})
+        else:
+            for idx, t in enumerate(tickets, 1):
+                items = amazon_pl.build_items(t)
+                if not items:
+                    continue
+                wh = (t.get("warehouse") or f"ticket{idx}").strip()
+                fba = (t.get("fba") or "").strip()
+                name = f"托书_{wh}_{fba}.xlsx" if fba else f"托书_{wh}.xlsx"
+                out_path = os.path.join(tmpdir, name)
+                try:
+                    filler.fill_template(items, template_path, out_path)
+                    out_files.append(out_path)
+                except Exception as e:
+                    return JSONResponse(status_code=500,
+                                        content={"error": f"票 {wh} 生成失败: {e}"})
 
         if not out_files:
             return JSONResponse(status_code=500, content={"error": "没有生成任何文件"})
 
+        if template_mode == "bulk":
+            # 批量模板：单文件直接下载，多文件同样打包
+            if len(out_files) == 1:
+                return FileResponse(
+                    out_files[0],
+                    filename=os.path.basename(out_files[0]),
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
         zip_path = os.path.join(tmpdir, "bookings.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for fp in out_files:

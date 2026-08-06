@@ -3,6 +3,7 @@
   "port": 8002,
   "access_url": "http://127.0.0.1:8002/",
   "template_path": "assets/客户货物运输托运书（系统下单用）.xlsx",
+  "bulk_template_path": "assets/批量下单标准模版.xlsx",
   "llm": {
     "endpoint": "https://api.hunyuan.cloud.tencent.com/v1",
     "model": "hunyuan-turbo",

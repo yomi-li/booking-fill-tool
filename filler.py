@@ -123,10 +123,10 @@ def _copy_template_local(template_path: str) -> str:
     return tmp.name
 
 
-def _add_product_image(ws, row, image_path, sku="", target=95):
-    """在 AD 列(row) 写入「内嵌」产品图片：用 TwoCellAnchor 把图片钉在该行
+def _add_product_image(ws, row, image_path, sku="", target=95, col=None):
+    """在指定列(row 行)写入「内嵌」产品图片：用 TwoCellAnchor 把图片钉在该行
     单元格内，图片随行移动、与对应产品行一一对齐；并按图片高度撑开本行行高，
-    保证图片完整落在这一行、不串到下一行。
+    保证图片完整落在这一行、不串到下一行。col 缺省用 IMG_COL（单票模板 AD 列）。
 
     写入前先用 Pillow 把图片等比缩放到 240px 内并压缩（解决超大原图 11-12MB
     被完整嵌入导致 xlsx 巨大、Excel/WPS 解码失败显示空白的问题）；
@@ -152,11 +152,12 @@ def _add_product_image(ws, row, image_path, sku="", target=95):
         # 行高按图片高度(像素→点)撑开，+4 留白，保证整图落在该行内
         ws.row_dimensions[row].height = max(
             ws.row_dimensions[row].height or 15, disp_h * 0.75 + 4)
-        # TwoCellAnchor：from=AD{row} 左上角，to=AD{row} 左上角+图片宽高(EMU)
+        # TwoCellAnchor：from=列{row} 左上角，to=列{row} 左上角+图片宽高(EMU)
         # 图片即“嵌入”在该单元格、随行移动，与产品行一一对应。
-        marker_from = AnchorMarker(col=IMG_COL - 1, row=row - 1, colOff=0, rowOff=0)
+        _col = col if col is not None else IMG_COL
+        marker_from = AnchorMarker(col=_col - 1, row=row - 1, colOff=0, rowOff=0)
         marker_to = AnchorMarker(
-            col=IMG_COL - 1, row=row - 1,
+            col=_col - 1, row=row - 1,
             colOff=pixels_to_EMU(disp_w),
             rowOff=pixels_to_EMU(disp_h),
         )

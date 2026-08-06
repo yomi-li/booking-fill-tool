@@ -740,23 +740,32 @@ function renderTickets(){
     };
   });
   const genCard=document.createElement('div'); genCard.className='card';
-  genCard.innerHTML=`<button id="btnGen" onclick="generateBookings()">📥 生成托书（每票一份，打包下载）</button>`;
+  genCard.innerHTML=`<div class="row" style="gap:10px">
+    <button id="btnGen" onclick="generateBookings('single')">📥 生成托书（单票模板，每票一份打包）</button>
+    <button id="btnGenBulk" onclick="generateBookings('bulk')">📦 批量下单模板（序号分票，一个文件）</button>
+  </div>
+  <div class="note" style="margin-top:8px">批量下单模板：序号 1、2、3…（同票共享）；PO NO=亚马逊内部编号；预计到仓时间=生成时间；地址类型按上传文件名判断（含 Amazon→FBA仓 / 含 Walmart→WAL仓）；收件信息列由仓库编码公式自动匹配，勿手动改动。</div>`;
   root.appendChild(genCard);
 }
-async function generateBookings(){
+async function generateBookings(mode='single'){
   if(!plData||!plData.tickets.length){ alert('没有可生成的数据'); return; }
-  document.getElementById('btnGen').disabled=true;
+  const btns=['btnGen','btnGenBulk'];
+  btns.forEach(id=>{const b=document.getElementById(id); if(b) b.disabled=true;});
   try{
     const tpl=document.getElementById('cfg_tpl').value;
+    const body={tickets:plData.tickets, template_path:tpl, template_mode:mode};
     const r=await fetch('/api/generate_bookings',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tickets:plData.tickets, template_path:tpl})});
+      body:JSON.stringify(body)});
     if(!r.ok){ const j=await r.json().catch(()=>({})); alert('生成失败: '+(j.error||r.status)); return; }
     const blob=await r.blob();
+    const disp=r.headers.get('Content-Disposition')||'';
+    let fn=disp.match(/filename\*?=(?:UTF-8''|")?([^\";]+)/i);
+    const ext=mode==='bulk' ? '.xlsx' : '.zip';
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='托书_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'')+'.zip';
+    a.download=(fn?decodeURIComponent(fn[1]):('托书_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'')+ext));
     a.click(); URL.revokeObjectURL(a.href);
   }catch(e){ alert('生成异常: '+e); }
-  finally{ document.getElementById('btnGen').disabled=false; }
+  finally{ btns.forEach(id=>{const b=document.getElementById(id); if(b) b.disabled=false;}); }
 }
 
 loadCfg();

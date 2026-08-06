@@ -89,6 +89,8 @@ def parse_packing_list(data: bytes, filename: str = ""):
         if blk["is_total"]:
             total_block = blk
         else:
+            # 记录来源文件名（批量下单模板按文件名判断 FBA仓/WAL仓 用）
+            blk["source_filename"] = filename
             tickets.append(blk)
 
     # 与 SKU 库匹配
