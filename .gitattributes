@@ -1,0 +1,7 @@
+# 强制 shell 脚本使用 LF 行尾（CRLF 在 Linux 容器中执行会报错）
+*.sh text eol=lf
+
+# 部署与配置文件统一 LF
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.github/** text eol=lf
