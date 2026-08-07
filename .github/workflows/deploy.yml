@@ -33,8 +33,12 @@ jobs:
           script: |
             set -e
             cd /opt/booking-fill-tool
+            # 配置国内 GitHub 镜像（解决国内服务器访问 GitHub 不稳定问题）
+            git remote set-url origin https://ghproxy.com/https://github.com/yomi-li/booking-fill-tool.git
             git fetch origin main
             git reset --hard origin/main
+            # 恢复原始 remote（保留 Token 认证）
+            git remote set-url origin https://yomi-li:${{ secrets.GITHUB_TOKEN }}@github.com/yomi-li/booking-fill-tool.git 2>/dev/null || true
             docker compose up -d --build --remove-orphans
             docker image prune -f >/dev/null 2>&1 || true
             echo "deploy done: $(date)"
