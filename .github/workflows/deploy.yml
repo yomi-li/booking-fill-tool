@@ -1,11 +1,11 @@
-# booking-fill-tool — 轻量服务器自动部署（最终版）
+# booking-fill-tool — 轻量服务器自动部署（最终版 v4）
 # 触发：push 到 main 分支
-# 流程：GitHub Actions 通过 SSH 密码登录服务器 → 在服务器上拉代码 → Docker 重建
+# 流程：GitHub Actions 打包代码 → SCP推送到服务器(密钥认证) → SSH重建容器(密钥认证)
 #
-# Secrets 配置：
+# Secrets（注意名字必须完全匹配）：
 #   SERVER_HOST     服务器公网 IP
 #   SERVER_USER     ubuntu
-#   SERVER_PASSWORD 服务器登录密码
+#   SERVER_SSH_KEY  服务器私钥
 #   SERVER_PORT     22
 #
 name: Deploy to Lightweight Server
@@ -20,40 +20,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # 唯一一步：SSH 登录服务器，在服务器内完成所有操作
+      # Step 1: 打包代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Package code
+        run: |
+          tar czf /tmp/deploy.tar.gz \
+            --exclude='.git' --exclude='node_modules' --exclude='__pycache__' \
+            --exclude='*.pyc' --exclude='_samples/' --exclude='_old_*' \
+            --exclude='*.log' --exclude='.env' \
+            .
+
+      # Step 2: SCP 推送到服务器（用 SSH 密钥认证，#4-#6 已验证可用）
+      - name: Upload to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "/tmp/deploy.tar.gz"
+          target: "/opt/booking-fill-tool/"
+
+      # Step 3: SSH 到服务器解压 + 重建容器（同样用密钥认证）
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           command_timeout: 25m
           script: |
             set -e
             cd /opt/booking-fill-tool
-
-            echo "=== Step 1: 拉取最新代码 ==="
-            # 方法A：直接 git fetch（网络好的时候能用）
-            GIT_RESULT=0
-            timeout 60 git fetch origin main 2>/dev/null && git reset --hard origin/main || GIT_RESULT=1
-
-            if [ $GIT_RESULT -ne 0 ]; then
-              echo "git fetch 失败，改用下载方式..."
-              # 方法B：通过 GitHub API 下载 tarball（走不同的网络路径）
-              cd /tmp
-              # 用 wget 重试机制下载
-              wget --tries=3 --timeout=30 \
-                -O deploy.tar.gz \
-                "https://github.com/yomi-li/booking-fill-tool/archive/refs/heads/main.tar.gz" \
-              && cd /opt/booking-fill-tool \
-              && tar xzf /tmp/deploy.tar.gz --strip-components=1 --overwrite \
-              && rm -f /tmp/deploy.tar.gz \
-              && echo "=== 代码下载成功 ==="
-            fi
-
-            echo "=== Step 2: 重建 Docker 容器 ==="
+            tar xzf deploy.tar.gz --overwrite
+            rm -f deploy.tar.gz
             docker compose up -d --build --remove-orphans
             docker image prune -f >/dev/null 2>&1 || true
-
             echo "deploy done: $(date)"
