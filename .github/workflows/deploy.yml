@@ -1,8 +1,9 @@
-# booking-fill-tool — 轻量服务器自动部署（最终版 v4）
+# booking-fill-tool — 轻量服务器自动部署（最终版 v5）
 # 触发：push 到 main 分支
-# 流程：GitHub Actions 打包代码 → SCP推送到服务器(密钥认证) → SSH重建容器(密钥认证)
+# 策略：SSH 密钥登录（#4-6 验证可用）→ 服务器端 git pull / wget 下载 → Docker 重建
+#       服务器 clone 时 remote 已含 Token，git pull 不需要额外认证
 #
-# Secrets（注意名字必须完全匹配）：
+# Secrets：
 #   SERVER_HOST     服务器公网 IP
 #   SERVER_USER     ubuntu
 #   SERVER_SSH_KEY  服务器私钥
@@ -20,30 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Step 1: 打包代码
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Package code
-        run: |
-          tar czf /tmp/deploy.tar.gz \
-            --exclude='.git' --exclude='node_modules' --exclude='__pycache__' \
-            --exclude='*.pyc' --exclude='_samples/' --exclude='_old_*' \
-            --exclude='*.log' --exclude='.env' \
-            .
-
-      # Step 2: SCP 推送到服务器（用 SSH 密钥认证，#4-#6 已验证可用）
-      - name: Upload to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          source: "/tmp/deploy.tar.gz"
-          target: "/opt/booking-fill-tool/"
-
-      # Step 3: SSH 到服务器解压 + 重建容器（同样用密钥认证）
+      # 唯一步骤：SSH 登录服务器执行全部操作
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -55,8 +33,51 @@ jobs:
           script: |
             set -e
             cd /opt/booking-fill-tool
-            tar xzf deploy.tar.gz --overwrite
-            rm -f deploy.tar.gz
+
+            echo "=== 方法1: git pull（remote 已含 Token）==="
+            if timeout 30 git pull origin main 2>&1; then
+              echo "git pull 成功"
+            else
+              echo "git pull 失败，尝试方法2..."
+              echo "=== 方法2: wget 下载 tarball ==="
+              cd /tmp
+              rm -f deploy.tar.gz main.tar.gz
+
+              # 尝试多个下载源
+              DOWNLOAD_OK=0
+
+              # 源A: GitHub 直连
+              wget --tries=2 --timeout=15 -q -O main.tar.gz \
+                "https://github.com/yomi-li/booking-fill-tool/archive/refs/heads/main.tar.gz" \
+                && DOWNLOAD_OK=1
+
+              # 源B: ghproxy 镜像
+              if [ $DOWNLOAD_OK -eq 0 ]; then
+                wget --tries=2 --timeout=15 -q -O main.tar.gz \
+                  "https://ghproxy.com/https://github.com/yomi-li/booking-fill-tool/archive/refs/heads/main.tar.gz" \
+                  && DOWNLOAD_OK=1
+              fi
+
+              # 源C: mirror.ghproxy.com
+              if [ $DOWNLOAD_OK -eq 0 ]; then
+                wget --tries=2 --timeout=15 -q -O main.tar.gz \
+                  "https://mirror.ghproxy.com/https://github.com/yomi-li/booking-fill-tool/archive/refs/heads/main.tar.gz" \
+                  && DOWNLOAD_OK=1
+              fi
+
+              if [ $DOWNLOAD_OK -eq 0 ]; then
+                echo "ERROR: 所有下载源都失败"
+                exit 1
+              fi
+
+              echo "下载成功，解压中..."
+              cd /opt/booking-fill-tool
+              tar xzf /tmp/main.tar.gz --strip-components=1 --overwrite
+              rm -f /tmp/main.tar.gz
+              echo "解压完成"
+            fi
+
+            echo "=== 重建 Docker 容器 ==="
             docker compose up -d --build --remove-orphans
             docker image prune -f >/dev/null 2>&1 || true
             echo "deploy done: $(date)"
