@@ -1,6 +1,7 @@
 # booking-fill-tool — 轻量服务器自动部署
 # 触发：push 到 main 分支
-# 流程：SSH 到服务器 → git 拉最新代码 → docker compose 重建容器
+# 流程：GitHub Actions 打包代码 → SCP 推送到服务器 → SSH 重建容器
+# 优势：服务器不需要访问 GitHub（国内被墙问题彻底解决）
 #
 # 首次使用前必须在仓库 Settings → Secrets and variables → Actions 里配置：
 #   SERVER_HOST    服务器公网 IP（如 124.xxx.xxx.xxx）
@@ -8,8 +9,6 @@
 #   SERVER_SSH_KEY 服务器登录私钥（OpenSSH 格式整段）
 #   SERVER_PORT    可选，SSH 端口，默认 22
 #
-# 服务器端需先按《轻量服务器部署指南.md》完成初始化：
-#   /opt/booking-fill-tool 已是 git clone 的仓库，且已配置免密拉取。
 name: Deploy to Lightweight Server
 
 on:
@@ -22,23 +21,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Step 1: 打包代码（排除 .git 等无用文件）
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Package code
+        run: |
+          tar czf /tmp/deploy.tar.gz \
+            --exclude='.git' --exclude='node_modules' --exclude='__pycache__' \
+            --exclude='*.pyc' --exclude='_samples/' --exclude='_old_*' \
+            --exclude='*.log' --exclude='.env' \
+            .
+
+      # Step 2: SCP 推送代码到服务器（服务器不需要连 GitHub）
+      - name: Upload to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: "/tmp/deploy.tar.gz"
+          target: "/opt/booking-fill-tool/"
+
+      # Step 3: SSH 到服务器解压 + 重建容器
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           command_timeout: 25m
           script: |
             set -e
             cd /opt/booking-fill-tool
-            # 配置国内 GitHub 镜像（解决国内服务器访问 GitHub 不稳定问题）
-            git remote set-url origin https://ghproxy.com/https://github.com/yomi-li/booking-fill-tool.git
-            git fetch origin main
-            git reset --hard origin/main
-            # 恢复原始 remote（保留 Token 认证）
-            git remote set-url origin https://yomi-li:${{ secrets.GITHUB_TOKEN }}@github.com/yomi-li/booking-fill-tool.git 2>/dev/null || true
+            # 解压新代码（覆盖旧文件，保留 .env 和数据卷）
+            tar xzf deploy.tar.gz --overwrite
+            rm -f deploy.tar.gz
+            # 重建容器
             docker compose up -d --build --remove-orphans
             docker image prune -f >/dev/null 2>&1 || true
             echo "deploy done: $(date)"
