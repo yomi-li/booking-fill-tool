@@ -3,9 +3,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 先装依赖，利用 Docker 层缓存
+# 先装依赖，利用 Docker 层缓存（使用国内镜像加速）
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # 再复制应用代码（sku_images / assets / customer_sku.json 种子 等都会进来）
 COPY . .
