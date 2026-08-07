@@ -1,13 +1,13 @@
 # booking-fill-tool — 轻量服务器自动部署
 # 触发：push 到 main 分支
 # 流程：GitHub Actions 打包代码 → SCP 推送到服务器 → SSH 重建容器
-# 优势：服务器不需要访问 GitHub（国内被墙问题彻底解决）
+# 认证方式：密码认证（国内服务器 SSH 密钥不稳定时更可靠）
 #
 # 首次使用前必须在仓库 Settings → Secrets and variables → Actions 里配置：
-#   SERVER_HOST    服务器公网 IP（如 124.xxx.xxx.xxx）
-#   SERVER_USER    登录用户名（如 ubuntu / root）
-#   SERVER_SSH_KEY 服务器登录私钥（OpenSSH 格式整段）
-#   SERVER_PORT    可选，SSH 端口，默认 22
+#   SERVER_HOST    服务器公网 IP
+#   SERVER_USER    登录用户名（ubuntu）
+#   SERVER_PASSWORD 服务器登录密码
+#   SERVER_PORT    SSH 端口，默认 22
 #
 name: Deploy to Lightweight Server
 
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Step 1: 打包代码（排除 .git 等无用文件）
+      # Step 1: 打包代码
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -33,30 +33,30 @@ jobs:
             --exclude='*.log' --exclude='.env' \
             .
 
-      # Step 2: SCP 推送代码到服务器（服务器不需要连 GitHub）
+      # Step 2: SCP 推送代码到服务器（密码认证）
       - name: Upload to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
           source: "/tmp/deploy.tar.gz"
           target: "/opt/booking-fill-tool/"
 
-      # Step 3: SSH 到服务器解压 + 重建容器
+      # Step 3: SSH 到服务器解压 + 重建容器（密码认证）
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
           command_timeout: 25m
           script: |
             set -e
             cd /opt/booking-fill-tool
-            # 解压新代码（覆盖旧文件，保留 .env 和数据卷）
+            # 解压新代码（覆盖旧文件，保留 .env 和数据）
             tar xzf deploy.tar.gz --overwrite
             rm -f deploy.tar.gz
             # 重建容器
