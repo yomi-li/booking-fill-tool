@@ -192,15 +192,18 @@ def _add_product_image(ws, row, image_path, sku="", target=95, col=None):
         ws.row_dimensions[row].height = max(
             ws.row_dimensions[row].height or 0, row_h_pt + 4)
 
-        # 4) 锚点：from=单元格左上角(内缩 INSET，确保不越过左上边界)，
-        #    to=同一单元格 + 图片宽高(EMU) → 图片完全落在 (col,row) 单元格内部，
-        #    随行/列移动，与产品行一一对应，内部系统可按单元格正确匹配。
+        # 4) 锚点：图片在单元格内居中
+        #    水平居中：colOff = (cell_w - disp_w) / 2
+        #    垂直居中：rowOff = (cell_h - disp_h) / 2
+        cell_h = ws.row_dimensions[row].height * 4/3 if ws.row_dimensions[row].height else _cell_height_px(ws, row)
+        center_x = max(0, int((cell_w - disp_w) / 2))
+        center_y = max(0, int((cell_h - disp_h) / 2))
         marker_from = AnchorMarker(col=_col - 1, row=row - 1,
-                                   colOff=pixels_to_EMU(INSET),
-                                   rowOff=pixels_to_EMU(INSET))
+                                   colOff=pixels_to_EMU(center_x),
+                                   rowOff=pixels_to_EMU(center_y))
         marker_to = AnchorMarker(col=_col - 1, row=row - 1,
-                                 colOff=pixels_to_EMU(disp_w + INSET),
-                                 rowOff=pixels_to_EMU(disp_h + INSET))
+                                 colOff=pixels_to_EMU(center_x + disp_w),
+                                 rowOff=pixels_to_EMU(center_y + disp_h))
         img.anchor = TwoCellAnchor(_from=marker_from, to=marker_to)
         ws.add_image(img)
     except Exception as e:
