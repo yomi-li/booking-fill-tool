@@ -123,10 +123,34 @@ def _copy_template_local(template_path: str) -> str:
     return tmp.name
 
 
+def _cell_width_px(ws, col):
+    """估算列宽(像素)。openpyxl 列宽以「字符数」存储，按 Calibri 11 近似换算：
+    px ≈ chars*7 + 5（含网格线）。用作把图片约束在单元格内的依据。"""
+    letter = get_column_letter(col)
+    dim = ws.column_dimensions.get(letter)
+    w_chars = dim.width if (dim and dim.width) else (ws.sheet_format.defaultColWidth or 8.43)
+    return int(w_chars * 7 + 5)
+
+
+def _cell_height_px(ws, row):
+    """估算行高(像素)。行高以点(pt)存储，1pt=1/72in、1px=1/96in → px=pt*(4/3)。"""
+    dim = ws.row_dimensions.get(row)
+    if dim and dim.height:
+        return int(dim.height * 4 / 3)
+    return int((ws.sheet_format.defaultRowHeight or 15) * 4 / 3)
+
+
 def _add_product_image(ws, row, image_path, sku="", target=95, col=None):
-    """在指定列(row 行)写入「内嵌」产品图片：用 TwoCellAnchor 把图片钉在该行
-    单元格内，图片随行移动、与对应产品行一一对齐；并按图片高度撑开本行行高，
-    保证图片完整落在这一行、不串到下一行。col 缺省用 IMG_COL（单票模板 AD 列）。
+    """在指定列(col, row 行)写入「内嵌」产品图片：图片完整落在 (col,row) 这一个
+    单元格内部，左上角不越过单元格左上边界，从而保证内部系统能按单元格正确匹配
+    每个 SKU 的图片。
+
+    关键约束（修复点）：
+      - 图片先按 target 等比缩放（兼顾可见性），再约束其宽高不超过单元格实际
+        像素尺寸（留安全边距），绝不溢出到右侧/下方其它列；
+      - 若单元格比图片小，则撑大该单元格（行高 + 图片列宽）以完整容纳图片；
+      - 锚点 from=单元格左上角(内缩边距)，to=同一单元格 + 图片宽高(EMU)，
+        图片随行/列移动，与产品行一一对应。
 
     写入前先用 Pillow 把图片等比缩放到 240px 内并压缩（解决超大原图 11-12MB
     被完整嵌入导致 xlsx 巨大、Excel/WPS 解码失败显示空白的问题）；
@@ -144,23 +168,39 @@ def _add_product_image(ws, row, image_path, sku="", target=95, col=None):
             img.width, img.height = w_px, h_px
         if not w_px or not h_px:
             return
-        # 等比缩放（以高度为主，保证一行能放下）
+        _col = col if col is not None else IMG_COL
+
+        # 1) 基于 target 的等比显示尺寸（保证可见、不超原图）
         scale = min(target / float(h_px), target / float(w_px), 1.0)
         disp_w = int(w_px * scale)
         disp_h = int(h_px * scale)
+
+        # 2) 水平约束：图片不得越过单元格右边界。
+        #    若比图片列宽大，则按列宽等比收缩图片（不撑宽列，避免挤压其它列）。
+        MARGIN = 4  # 安全边距(px)，保证图片严格在单元格内、不压线
+        INSET = 2   # 图片相对单元格左上角的内缩(px)，保证不越过左上边界
+        cell_w = _cell_width_px(ws, _col)
+        if disp_w > cell_w - MARGIN:
+            k = (cell_w - MARGIN) / float(disp_w)
+            disp_w = max(1, int(disp_w * k))
+            disp_h = max(1, int(disp_h * k))
         img.width, img.height = disp_w, disp_h
-        # 行高按图片高度(像素→点)撑开，+4 留白，保证整图落在该行内
+
+        # 3) 垂直：撑大该行的行高以完整容纳图片（图片始终完整可见，
+        #    不收缩到极小）。行高(pt) = (图片高+边距)*0.75，px=pt*(4/3) 反推。
+        row_h_pt = (disp_h + MARGIN) * 0.75
         ws.row_dimensions[row].height = max(
-            ws.row_dimensions[row].height or 15, disp_h * 0.75 + 4)
-        # TwoCellAnchor：from=列{row} 左上角，to=列{row} 左上角+图片宽高(EMU)
-        # 图片即“嵌入”在该单元格、随行移动，与产品行一一对应。
-        _col = col if col is not None else IMG_COL
-        marker_from = AnchorMarker(col=_col - 1, row=row - 1, colOff=0, rowOff=0)
-        marker_to = AnchorMarker(
-            col=_col - 1, row=row - 1,
-            colOff=pixels_to_EMU(disp_w),
-            rowOff=pixels_to_EMU(disp_h),
-        )
+            ws.row_dimensions[row].height or 0, row_h_pt + 4)
+
+        # 4) 锚点：from=单元格左上角(内缩 INSET，确保不越过左上边界)，
+        #    to=同一单元格 + 图片宽高(EMU) → 图片完全落在 (col,row) 单元格内部，
+        #    随行/列移动，与产品行一一对应，内部系统可按单元格正确匹配。
+        marker_from = AnchorMarker(col=_col - 1, row=row - 1,
+                                   colOff=pixels_to_EMU(INSET),
+                                   rowOff=pixels_to_EMU(INSET))
+        marker_to = AnchorMarker(col=_col - 1, row=row - 1,
+                                 colOff=pixels_to_EMU(disp_w + INSET),
+                                 rowOff=pixels_to_EMU(disp_h + INSET))
         img.anchor = TwoCellAnchor(_from=marker_from, to=marker_to)
         ws.add_image(img)
     except Exception as e:
