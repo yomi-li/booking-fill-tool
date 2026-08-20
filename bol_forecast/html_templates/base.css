@@ -1,0 +1,67 @@
+/* bol_forecast/html_templates/base.css
+ * 通用样式：@page、字体回退、单元格基础类。所有文档模板 base 引用之。
+ */
+@page {
+    size: A4 portrait;
+    margin: 18pt;   /* 对齐现 Excel COM PageSetup 边距 */
+}
+
+@font-face {
+    font-family: "Lato";
+    src: url("../static/fonts/Lato-Regular.ttf") format("truetype");
+    font-weight: normal;
+}
+@font-face {
+    font-family: "Lato";
+    src: url("../static/fonts/Lato-Bold.ttf") format("truetype");
+    font-weight: bold;
+}
+
+/* 字体回退栈：
+ * - Latin: Lato (项目内嵌) -> Arial / Liberation Sans (度量兼容) -> sans-serif
+ * - CJK:   宋体/微软雅黑/等线 (Windows) -> Noto Sans CJK SC (Linux/Docker) -> sans-serif
+ */
+:root {
+    --font-latin: "Lato", "Arial", "Liberation Sans", sans-serif;
+    --font-cjk:   "宋体", "SimSun", "Microsoft YaHei", "微软雅黑", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+    --font-yahei: "微软雅黑", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --font-deng:  "等线", "DengXian", "Noto Sans CJK SC", sans-serif;
+    --font-serif: "Times New Roman", "Liberation Serif", serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    font-family: var(--font-cjk);
+    font-size: 11pt;
+    line-height: 1.2;
+    color: #000;
+    background: #fff;
+    -weasy-font-config: none;  /* 抑制 Pango fontconfig 警告（Windows 上无害） */
+}
+
+/* 工具类 */
+.cell        { border: 0.5pt solid #000; padding: 2pt 4pt; }
+.cell-right  { text-align: right; }
+.cell-center { text-align: center; }
+.cell-bold   { font-weight: bold; }
+.fit         { white-space: nowrap; overflow: hidden; }
+.label       { font-weight: bold; }
+.small       { font-size: 9pt; }
+.muted       { color: #555; }
+.hr          { border: 0; border-top: 0.5pt solid #000; margin: 4pt 0; }
+
+/* 全局图片约束：原始 LOGO 高达 7637px，CSS 必须限制 width。
+ * 业务模板仍可用 .logo-bleed/.stamp 等更小的类。
+ */
+img { max-width: 100%; height: auto; }
+.logo-bled  { width: 100pt; height: auto; }   /* 开船提单顶部 LOGO */
+.logo-mid   { width: 70pt;  height: auto; }   /* INVOICE 顶部 LOGO */
+.logo-fact  { width: 100pt; height: auto; }   /* 工厂账单 LOGO */
+.stamp      { width: 70pt;  height: auto; }   /* 签章 */
+
+/* 分页控制：表格尽量不被切到两页（其他块允许被切到下页，避免 LOGO 单独成页） */
+.charge-table, .invoice-table, .invoice-info, .info-table, .field-table {
+    page-break-inside: avoid;
+}
+table { page-break-inside: auto; }

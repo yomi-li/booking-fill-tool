@@ -1,0 +1,132 @@
+/* 开船提单 B/L 样式。
+ * 对应模板：开船提单模版.xlsx，A1:M72。
+ * 注：此为简化版 HTML 模板（覆盖核心业务字段），排版细节后续 compare_pdfs 迭代。
+ */
+.sheet {
+    width: 100%;
+    position: relative;
+}
+
+/* 顶部 LOGO 区：右上方 7-11 列 */
+.logo-area {
+    text-align: right;
+    margin-bottom: 8pt;
+}
+.logo-area img { max-height: 70pt; }
+
+/* 一行式字段：bl_no 在右侧 */
+.row-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8pt;
+}
+.bl-no {
+    font-size: 14pt;
+    font-weight: bold;
+    font-family: var(--font-latin);
+    border-bottom: 1pt solid #000;
+    padding: 0 4pt;
+    min-width: 100pt;
+    text-align: center;
+}
+
+/* 块：consignee / notify */
+.block {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    margin: 6pt 0;
+    min-height: 50pt;
+}
+.block .label {
+    font-weight: bold;
+    font-size: 10pt;
+    font-family: var(--font-yahei);
+    color: #333;
+    margin-bottom: 2pt;
+}
+.block .value {
+    font-size: 11pt;
+    white-space: pre-line;
+}
+
+/* 提单主表：船名/起运港/目的港/柜号 */
+.bl-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8pt 0;
+}
+.bl-grid td {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    vertical-align: top;
+}
+.bl-grid td.label {
+    font-family: var(--font-yahei);
+    font-weight: bold;
+    width: 18%;
+    background: #f5f5f5;
+}
+.bl-grid td.value {
+    width: 32%;
+    font-family: var(--font-latin);
+    white-space: nowrap;
+    overflow: hidden;
+}
+.bl-grid td.value-en { font-family: var(--font-latin); }
+.bl-grid td.value-cjk { font-family: var(--font-yahei); }
+
+/* 货描行 */
+.goods-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 0.5pt solid #000;
+    padding: 2pt 0;
+}
+.goods-row .label {
+    font-weight: bold;
+    font-family: var(--font-yahei);
+    width: 22%;
+}
+.goods-row .value {
+    flex: 1;
+    text-align: right;
+    font-family: var(--font-latin);
+}
+
+/* 底部签章图 */
+.stamp-area {
+    text-align: right;
+    margin-top: 18pt;
+}
+.stamp-area img { max-height: 100pt; }
+
+.fixed-cfs { font-weight: bold; font-family: var(--font-yahei); margin: 4pt 0; }
+.freight-collect { font-weight: bold; margin-top: 12pt; font-size: 12pt; }
+
+.say-line {
+    font-family: var(--font-latin);
+    font-weight: bold;
+    font-size: 12pt;
+    margin: 8pt 0;
+    text-align: center;
+}
+.shipped-on-board {
+    text-align: right;
+    font-weight: bold;
+    margin-top: 6pt;
+    font-size: 11pt;
+}
+.issue-place {
+    text-align: center;
+    margin-top: 12pt;
+    font-weight: bold;
+    font-family: var(--font-latin);
+}
+.signature {
+    text-align: right;
+    font-size: 10pt;
+    color: #333;
+    margin-top: 6pt;
+}

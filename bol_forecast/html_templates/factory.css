@@ -1,0 +1,83 @@
+/* 工厂账单（运费确认书）样式。对应模板：工厂账单模版.xlsx，A1:K51。 */
+.factory-sheet { width: 100%; position: relative; }
+
+.factory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12pt;
+    padding-bottom: 6pt;
+    border-bottom: 0.5pt solid #000;
+}
+.factory-header .logo img { max-height: 50pt; }
+.factory-header h1 {
+    font-family: var(--font-yahei);
+    font-size: 16pt;
+    font-weight: bold;
+    flex: 1;
+    text-align: center;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6pt 0;
+}
+.info-table td {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    vertical-align: top;
+    font-size: 11pt;
+}
+.info-table td.label {
+    font-family: var(--font-yahei);
+    font-weight: bold;
+    width: 18%;
+    background: #f5f5f5;
+    white-space: nowrap;
+}
+.info-table td.value {
+    width: 32%;
+    font-family: var(--font-yahei);
+    white-space: pre-line;
+}
+.info-table td.value-en { font-family: var(--font-latin); }
+
+.charge-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12pt 0;
+}
+.charge-table th, .charge-table td {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    font-size: 11pt;
+}
+.charge-table th {
+    background: #f0f0f0;
+    font-family: var(--font-yahei);
+    font-weight: bold;
+    text-align: center;
+}
+.charge-table td.amount { text-align: right; font-family: var(--font-latin); }
+.charge-table td.center { text-align: center; font-family: var(--font-latin); }
+.charge-table tfoot td {
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.bank-info, .notice {
+    margin-top: 12pt;
+    padding: 6pt 8pt;
+    border: 0.5pt solid #000;
+    font-size: 10pt;
+    line-height: 1.5;
+    font-family: var(--font-yahei);
+}
+.bank-info h3, .notice h3 {
+    font-size: 11pt;
+    font-weight: bold;
+    margin-bottom: 4pt;
+}
+
+.urgent { color: #c00; font-weight: bold; }

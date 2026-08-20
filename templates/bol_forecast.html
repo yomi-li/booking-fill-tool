@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>单证流水线</title>
+<style>
+  :root{--b:#1f6feb;--bd:#d0d7de;--bg:#f6f8fa;--tx:#24292f;--panel:#fff;--border:#d0d7de;--primary:#1f6feb}
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.5 -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--tx);background:var(--bg)}
+  .wrap{max-width:1320px;margin:0 auto;padding:12px}
+  h1{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  h1 .tag{font-size:11px;font-weight:400;color:#57606a;background:#eaeef2;padding:2px 6px;border-radius:4px}
+  .card{border:1px solid var(--bd);border-radius:6px;background:#fff}
+  .hd{background:#f0f3f6;border-bottom:1px solid var(--bd);padding:6px 10px;font-weight:600;border-radius:6px 6px 0 0}
+  .bd{padding:10px}
+  label{display:block;margin:0 0 4px;color:#57606a;font-size:12px}
+  input[type=text],input[type=date],select,textarea{width:100%;padding:5px 7px;border:1px solid var(--bd);border-radius:4px;font:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--b)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+  button{background:var(--b);color:#fff;border:0;border-radius:4px;padding:6px 14px;font:inherit;cursor:pointer}
+  button.ghost{background:#eaeef2;color:#24292f}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btns{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+  .chk{display:flex;align-items:center;gap:6px;padding:3px 0}
+  .chk input{width:auto}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px}
+  .fld{display:flex;flex-direction:column;gap:2px}
+  .fld .k{color:#57606a;font-size:11px}
+  .fld .v{font-weight:600;word-break:break-all}
+  .warn{color:#9a6700;background:#fff8c5;border:1px solid #f0e6a8;padding:5px 8px;border-radius:4px;font-size:12px;margin-top:6px}
+  .res{border-top:1px dashed var(--bd);padding-top:8px;margin-top:8px}
+  .doc{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6}
+  .doc .nm{font-weight:600;min-width:84px}
+  .doc a{color:var(--b);text-decoration:none;margin-right:10px}
+  .doc a:hover{text-decoration:underline}
+  pre{background:#f6f8fa;border:1px solid var(--bd);border-radius:4px;padding:8px;white-space:pre-wrap;margin:6px 0 0;font-size:12px}
+  .hidden{display:none}
+  .err{color:#cf222e}.ok{color:#1a7f37}
+  .drop{border:1.5px dashed var(--bd);border-radius:6px;padding:14px;text-align:center;
+      color:#57606a;cursor:pointer;background:#fafbfc;transition:background .15s,border-color .15s}
+  .drop.hover{border-color:var(--b);background:#eef4ff;color:var(--tx)}
+  .drop.sm{padding:8px 10px;font-size:12px}
+  .drop:focus{outline:none;border-color:var(--b);background:#eef4ff}
+  .flist{list-style:none;margin:6px 0 0;padding:0}
+  .flist li{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--bd);
+      border-radius:4px;margin-bottom:4px;background:#fff;font-size:11.5px;line-height:1.4}
+  .flist .tag{font-size:10px;background:#dbeafe;color:#0645ad;padding:1px 5px;border-radius:3px;white-space:nowrap}
+  .flist .nm{flex:1;word-break:break-all;overflow:hidden;text-overflow:ellipsis}
+  .flist .x{cursor:pointer;color:#cf222e;font-weight:700;padding:0 3px;font-size:13px}
+  .sec-title{font-size:12px;font-weight:600;color:#57606a;margin:10px 0 4px;display:flex;align-items:center;gap:6px}
+  textarea{height:48px;resize:vertical;font-size:12px}
+  .hint{font-size:11px;color:#57606a;margin-top:3px}
+  .mini{font-size:11.5px;padding:3px 9px}
+  .pasted{font-size:11px;color:var(--b);margin-top:3px}
+
+  /* ── 两栏结构 ── */
+  .cols{display:grid;grid-template-columns:1fr;gap:12px;align-items:start;margin-top:10px}
+  .cols.lib-open,.cols.speech-open{grid-template-columns:minmax(0,1fr) 460px}
+  .col-left{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .lib-panel,.speech-panel{display:none;border:1px solid var(--bd);border-radius:6px;background:#fff;align-self:start}
+  .cols.lib-open .lib-panel,.cols.speech-open .speech-panel{display:block;animation:slideIn .25s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+  .lib-hd,.speech-hd{display:flex;align-items:center;justify-content:space-between;background:#eef4ff;
+      border-bottom:1px solid var(--bd);padding:6px 10px;font-weight:600;border-radius:6px 6px 0 0}
+  .lib-close,.speech-close{cursor:pointer;color:#57606a;font-size:16px;line-height:1;padding:2px 6px}
+  .lib-close:hover,.speech-close:hover{color:var(--b)}
+  @media(max-width:1080px){
+    .cols.lib-open,.cols.speech-open{grid-template-columns:1fr}
+    .lib-panel,.speech-panel{position:static}
+  }
+
+  /* ── 客户库内嵌表 ── */
+  .ctable{width:100%;border-collapse:collapse;font-size:11px;margin-top:2px}
+  .ctable th,.ctable td{border:1px solid var(--bd);padding:3px 4px;text-align:left;vertical-align:middle}
+  .ctable th{background:#f0f3f6;font-weight:600;white-space:nowrap}
+  .ctable input,.ctable select{width:100%;padding:3px 4px;font:inherit;font-size:11px;border:1px solid #e3e8ee;border-radius:3px;background:#fff}
+  .ctable .rm{cursor:pointer;color:#cf222e;font-weight:700;text-align:center;width:18px}
+  .ctable .c-name{font-weight:600}
+  .hist{font-size:11.5px}
+  .hist table{width:100%;border-collapse:collapse}
+  .hist th,.hist td{border:1px solid var(--bd);padding:3px 5px;text-align:left}
+  .hist th{background:#f0f3f6}
+
+  .topbar{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--border)}
+  .topbar .back{color:var(--primary);text-decoration:none;font-weight:600;font-size:13px}
+  .topbar .back:hover{text-decoration:underline}
+  .topbar .mod{font-weight:700;font-size:15px}
+
+  /* ── 客户性质：工厂 / 客户 表单显隐（null 类型显示全部，用于默认模板） ── */
+  .cust-type-customer .only-factory{display:none}
+  .cust-type-factory  .only-customer{display:none}
+</style>
+</head>
+<body>
+  <div class="topbar"><a href="/" class="back">← 返回单证提取填充工具</a><span class="mod">散货提单和预报生成</span></div>
+<div class="wrap">
+  <h1>⚓ 单证流水线 <span class="tag">本地 · 离线 · 跨电脑可用</span></h1>
+
+  <div class="cols" id="cols">
+    <!-- ════════ 左栏 ════════ -->
+    <div class="col-left">
+
+      <!-- 1 · 上传单据：托书 + 报关单 两个独立区 -->
+      <div class="card">
+        <div class="hd">1 · 上传单据</div>
+        <div class="bd">
+          <div class="row">
+            <div>
+              <div class="sec-title">📄 报关单（PDF）</div>
+              <div id="drop-customs" class="drop">点击 / 拖拽上传报关单
+                <input type="file" id="f-customs" accept=".pdf" hidden>
+              </div>
+            </div>
+            <div>
+              <div class="sec-title">📋 托书（Excel）</div>
+              <div id="drop-booking" class="drop">点击 / 拖拽上传托书
+                <input type="file" id="f-booking" accept=".xlsx,.xls" hidden>
+              </div>
+            </div>
+          </div>
+
+          <!-- 收货数据（可手动编辑，OCR 粘贴优先） -->
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--bd)">
+            <div class="sec-title">📦 收货数据（可手动编辑，优先于托书）</div>
+            <div class="row4" style="margin-top:4px">
+              <div class="fld"><span class="k">件数</span><input type="text" id="i-rcv-ctns" placeholder="来自托书"></div>
+              <div class="fld"><span class="k">毛重 KGS</span><input type="text" id="i-rcv-gw" placeholder="来自托书"></div>
+              <div class="fld"><span class="k">体积 CBM</span><input type="text" id="i-rcv-cbm" placeholder="来自托书"></div>
+              <div class="fld"><span class="k">计费重 KGS</span><input type="text" id="i-rcv-cw" placeholder="—"></div>
+            </div>
+            <div id="drop-rcv" class="drop sm" tabindex="0" style="margin-top:6px">在此粘贴收货截图，自动识别件数/毛重/体积</div>
+            <div id="rcv-pasted" class="pasted hidden">✓ 已粘贴收货截图，解析时一并识别</div>
+          </div>
+
+          <!-- 轨迹信息（可手动编辑，OCR/文本粘贴识别） -->
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--bd)">
+            <div class="sec-title">📍 轨迹信息（可手动编辑，自动识别 ATD/ETA/船名）</div>
+            <div class="row3" style="margin-top:4px">
+              <div class="fld"><span class="k">ATD 开船时间</span><input type="text" id="i-atd" placeholder="YYYY-MM-DD"></div>
+              <div class="fld"><span class="k">ETA 到港时间</span><input type="text" id="i-eta" placeholder="YYYY-MM-DD"></div>
+              <div class="fld"><span class="k">船名航次 Vessel</span><input type="text" id="i-vessel"></div>
+            </div>
+            <textarea id="t-tracking-text" placeholder="粘贴轨迹文本…（如：已起运 开船时间：2026-8-7，船名航次：PELICAN 15E，预计到港：2026-8-19）"></textarea>
+            <div id="drop-trk" class="drop sm" tabindex="0" style="margin-top:6px">在此粘贴轨迹截图，自动识别 ATD/ETA/船名</div>
+            <div id="trk-pasted" class="pasted hidden">✓ 已粘贴轨迹截图，解析时一并识别</div>
+          </div>
+
+          <ul id="file-list" class="flist"></ul>
+          <div class="btns">
+            <button id="btn-parse">解析全部</button>
+            <span id="parse-msg" class="err"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 · 客户选择 -->
+      <div class="card">
+        <div class="hd">2 · 客户选择（决定费用与收货人/发货人带出）</div>
+        <div class="bd">
+          <div class="row" style="align-items:end">
+            <div class="fld"><span class="k">工厂账单客户</span>
+              <input type="text" class="sel-filter" data-for="i-fac-cust" placeholder="🔍 输入关键字筛选…" style="font-size:12px;padding:3px 6px;margin-bottom:2px">
+              <select id="i-fac-cust"></select>
+            </div>
+            <div class="fld"><span class="k">INVOICE 客户（可不同）</span>
+              <input type="text" class="sel-filter" data-for="i-inv-cust" placeholder="🔍 输入关键字筛选…" style="font-size:12px;padding:3px 6px;margin-bottom:2px">
+              <select id="i-inv-cust"></select>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="ghost" id="btn-newcust">＋ 新建客户信息</button>
+            <button class="ghost" id="btn-editcust">✎ 编辑客户信息</button>
+            <button class="ghost" id="btn-speech">📣 编辑预报话术</button>
+            <span class="hint" style="margin:0">两客户可不同：工厂账单走「工厂账单客户」费用，INVOICE 走「INVOICE 客户」费用。</span>
+          </div>
+          <!-- 需求6：INVOICE 费用标准 + Due Date 每票手动录入，不再与客户绑定存储 -->
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--bd)">
+            <div class="sec-title">INVOICE 费用标准 + Due Date（每票手动录入为准）</div>
+            <div class="row" style="margin-top:4px">
+              <div class="fld" style="max-width:220px"><span class="k">Due Date</span><input type="date" id="i-inv-due"></div>
+              <div class="fld" style="max-width:140px"><span class="k">账单总币别</span><input type="text" id="i-inv-currency" placeholder="USD" value="USD"></div>
+              <span class="hint" style="margin:0;align-self:end">选择 INVOICE 客户时会带入该客户原费用作为起点，可在此直接修改；生成以本票手录为准。费用行币别+汇率将折算为「账单总币别」金额。</span>
+            </div>
+            <table class="ctable" id="tbl-inv-manual" style="margin-top:4px">
+              <thead><tr><th>名称</th><th>描述 Description</th><th>模式</th><th>单位</th><th>单价</th><th>数量变量</th><th>币别</th><th>汇率</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <button class="ghost mini" id="inv-add-row" style="margin-top:4px">＋ 增加一行费用</button>
+            <span class="hint" style="margin:4px 0 0 8px">费用行数不设上限：超出模板固定区时自动向下插入行承接，PDF 单页缩放显示；导出的 Excel 仍可手动编辑。行内「描述」将写入 INVOICE 的 DESCRIPTION 栏；当费用币别与账单总币别不一致时，自动在原描述后追加原币别与汇率。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 · 字段确认与生成范围 -->
+      <div class="card hidden" id="card-gen">
+        <div class="hd">3 · 字段确认与生成范围</div>
+        <div class="bd">
+          <div class="row">
+            <div class="fld"><span class="k">B/L NO.</span><input type="text" id="i-bl"></div>
+            <div class="fld"><span class="k">装船时间 On Board</span><input type="text" id="i-ship"></div>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <div class="fld"><span class="k">封条 Seal（默认 //）</span><input type="text" id="i-seal" placeholder="//"></div>
+            <div class="fld"><span class="k">包装单位描述</span><input type="text" id="i-pkg"></div>
+          </div>
+
+          <div id="info-preview" class="grid" style="margin-top:8px">
+            <div class="fld"><span class="k">收货人 Consignee</span><textarea id="i-consignee" rows="4"></textarea></div>
+            <div class="fld"><span class="k">发货人 Shipper</span><textarea id="i-shipper" rows="4"></textarea></div>
+            <div class="fld"><span class="k">成交方式</span><input type="text" id="i-trade"></div>
+            <div class="fld"><span class="k">订单号 Order No.</span><input type="text" id="i-order"></div>
+          </div>
+          <div id="fields-preview" class="grid" style="margin-top:6px">
+            <div class="fld"><span class="k">起运港 POL</span><input type="text" id="i-pol"></div>
+            <div class="fld"><span class="k">目的港 POD</span><input type="text" id="i-pod"></div>
+            <div class="fld"><span class="k">柜号 Container</span><input type="text" id="i-cont"></div>
+            <div class="fld" style="grid-column:1/-1"><span class="k">品名 Description of Goods（每行一个品名，独立成行）</span><textarea id="i-goods" rows="4" placeholder="每行一个品名，独立成行"></textarea></div>
+            <div class="fld"><span class="k">客户 PO</span><input type="text" id="i-customer-po" placeholder="非空时在提单品名末行另起新行显示"></div>
+            <div class="fld" style="grid-column:1/-1"><label class="chk"><input type="checkbox" id="i-customer-po-on-bl" checked>在提单显示客户PO（勾选→品名末行另起新行显示 PO:；不勾选→提单不显示，但话术与文件名不受影响）</label></div>
+          </div>
+          <div class="btns">
+            <button class="ghost mini" id="btn-save-habits">💾 保存为当前客户习惯</button>
+            <span id="habits-msg" class="ok"></span>
+          </div>
+          <div id="warn-box"></div>
+
+          <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--bd)">
+            <div class="sec-title">生成范围</div>
+            <div class="grid" style="margin-top:4px">
+              <label class="chk"><input type="checkbox" class="sel" value="bl" checked>提单核对件 (EXCEL+PDF)</label>
+              <label class="chk"><input type="checkbox" class="sel" value="telex" checked>电放保函 (EXCEL+PDF)</label>
+              <label class="chk"><input type="checkbox" class="sel" value="factory" checked>工厂账单 (EXCEL+PDF)</label>
+              <label class="chk"><input type="checkbox" class="sel" value="invoice" checked>INVOICE (EXCEL+PDF)</label>
+              <label class="chk"><input type="checkbox" class="sel" value="speech" checked>预报话术</label>
+            </div>
+            <div class="fld" style="margin-top:6px;max-width:260px">
+              <span class="k">话术版本</span><select id="i-speech-ver"></select>
+            </div>
+            <div class="btns">
+              <button id="btn-gen">生成并导出</button>
+              <span id="gen-msg" class="err"></span>
+            </div>
+          </div>
+
+          <div id="card-res">
+            <div class="sec-title">产出</div>
+            <div id="res-box"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ════════ 右栏：客户信息库（默认隐藏，按需弹出） ════════ -->
+    <div class="lib-panel" id="lib-panel">
+      <div class="lib-hd">
+        <span>📇 客户信息库</span>
+        <span class="lib-close" id="lib-close" title="收起">✕</span>
+      </div>
+      <div class="bd" id="lib-body">
+        <div class="row" style="align-items:end">
+          <div class="fld" style="min-width:200px"><span class="k">切换客户</span><select id="i-cust"></select></div>
+          <button class="ghost mini" id="lib-new">＋ 新建</button>
+          <button class="ghost mini" id="lib-del">删除</button>
+        </div>
+        <div id="lib-cust-msg" class="err" style="margin-top:4px"></div>
+
+        <div class="sec-title">客户性质</div>
+        <div class="row">
+          <div class="fld"><span class="k">类型</span>
+            <select id="i-ctype">
+              <option value="">（默认模板）显示全部区块</option>
+              <option value="factory">工厂（含收货人/发货人 + 工厂账单费用）</option>
+              <option value="customer">客户（INVOICE：账单抬头 + INVOICE 费用）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sec-title">基础资料</div>
+        <div class="row">
+          <div class="fld"><span class="k">客户代码 Code</span><input type="text" id="i-code" placeholder="如 ABC2026"></div>
+          <div class="fld"><span class="k" id="k-name">客户简称 Name</span><input type="text" id="i-name"></div>
+        </div>
+        <!-- 客户类型：账单抬头信息 -->
+        <div class="only-customer">
+          <div class="sec-title">🧾 账单抬头信息（INVOICE 抬头）</div>
+          <div class="fld"><span class="k">账单抬头</span><input type="text" id="i-billing" placeholder="如 XXX TRADING CO., LTD."></div>
+        </div>
+
+        <!-- 工厂类型：收货人 / 发货人（保留） -->
+        <div class="only-factory">
+          <div class="sec-title">📦 收货人 Consignee</div>
+          <div class="row3">
+            <div class="fld"><span class="k">名称</span><input type="text" id="i-cn-name"></div>
+            <div class="fld"><span class="k">地址</span><input type="text" id="i-cn-addr"></div>
+            <div class="fld"><span class="k">联系方式</span><input type="text" id="i-cn-contact"></div>
+          </div>
+          <div class="sec-title">🚢 发货人 Shipper</div>
+          <div class="row3">
+            <div class="fld"><span class="k">名称</span><input type="text" id="i-sp-name"></div>
+            <div class="fld"><span class="k">地址</span><input type="text" id="i-sp-addr"></div>
+            <div class="fld"><span class="k">联系方式</span><input type="text" id="i-sp-contact"></div>
+          </div>
+          <!-- Req4：开票抬头 + 客服名字 → 工厂账单 TO/FROM -->
+          <div class="sec-title">🏷️ 工厂账单信息</div>
+          <div class="row">
+            <div class="fld"><span class="k">开票抬头（工厂账单 TO 栏）</span><input type="text" id="i-invtitle" placeholder="如 XX IMPORT&EXPORT CO.,LTD."></div>
+            <div class="fld"><span class="k">客服名字（工厂账单 FROM 栏）</span><input type="text" id="i-csr" placeholder="如 小陈"></div>
+          </div>
+        </div>
+
+        <!-- 工厂类型：工厂账单费用标准 -->
+        <div class="only-factory">
+          <div class="sec-title">🏭 工厂账单费用标准（RMB）</div>
+          <table class="ctable" id="tbl-factory">
+            <thead><tr><th>名称</th><th>模式</th><th>单位</th><th>单价</th><th>数量变量</th><th>保底</th><th>币别</th><th>汇率</th><th>公式</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <button class="ghost mini" id="lib-add-fac" style="margin-top:4px">＋ 增加一行</button>
+          <span class="hint" style="margin:4px 0 0 8px">费用行数不设上限：超出模板固定区时自动向下插入行承接，PDF 单页缩放显示；导出的 Excel 仍可手动编辑。</span>
+        </div>
+
+        <div class="sec-title">历史记录（生成元数据，不存文件）</div>
+        <div id="hist-box" class="hist"><span style="color:#57606a">选择客户后显示历史。</span></div>
+
+        <div class="btns">
+          <button id="lib-save">保存客户资料与费用</button>
+          <span id="lib-save-msg" class="ok"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════════ 右栏：预报话术管理（独立栏位） ════════ -->
+    <div class="speech-panel" id="speech-panel">
+      <div class="speech-hd">
+        <span>📣 预报话术管理</span>
+        <span class="speech-close" id="speech-close" title="收起">✕</span>
+      </div>
+      <div class="bd" id="speech-body">
+        <div class="row" style="align-items:end">
+          <div class="fld" style="min-width:200px"><span class="k">切换客户</span><select id="i-speech-cust"></select></div>
+        </div>
+        <div id="speech-list" class="hint" style="margin-top:6px">选择客户后显示话术。</div>
+        <span id="speech-cust-label" class="hint"></span>
+        <!-- 话术编辑器（默认隐藏，点击新增/编辑才展开） -->
+        <div class="card hidden" id="speech-editor" style="margin-top:6px">
+          <div class="hd">话术编辑器</div>
+          <div class="bd">
+            <input type="hidden" id="e-id">
+            <div class="fld"><span class="k">话术名称</span><input type="text" id="e-name" placeholder="如 开船预报-标准版"></div>
+            <label class="chk" style="display:flex;align-items:center;gap:6px;margin-top:4px"><input type="checkbox" id="e-default"> 设为默认话术</label>
+            <div class="fld" style="margin-top:6px"><span class="k">正文（支持变量 {{变量名}}）</span>
+              <textarea id="e-body" style="height:120px;resize:vertical;font-size:12px"></textarea>
+            </div>
+            <div class="vars" id="vars-box2" style="margin-top:4px"><span class="hint">可用变量（点击插入到光标处）：</span></div>
+            <div class="btns">
+              <button id="btn-speech-save">保存话术</button>
+              <button class="ghost" id="btn-speech-cancel">取消</button>
+              <button class="ghost mini" id="btn-speech-preview">预览（示例值）</button>
+              <span id="speech-msg" class="err"></span>
+            </div>
+            <div id="speech-preview-box" class="hidden" style="margin-top:6px"></div>
+          </div>
+        </div>
+        <div class="btns" style="margin-top:6px">
+          <button class="ghost mini" id="btn-speech-new">＋ 新增话术</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ORDER = null, CAND = [], SPEECH = [];
+let FILES = { customs:null, booking:null, receiving:null, tracking:null };
+let RCV_DATA = {}, TRK_DATA = {};
+
+function $(id){return document.getElementById(id)}
+function esc(s){return (s==null?'':String(s)).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+/* ───────── 上传：托书 + 报关单 两个独立区 ───────── */
+const FILE_META = {
+  customs:   { tag:'报关单', color:'#dbeafe' },
+  booking:   { tag:'托书',   color:'#eaeef2' },
+  receiving: { tag:'收货截图', color:'#ddf4ff' },
+  tracking:  { tag:'轨迹截图', color:'#f0e6ff' },
+};
+function refreshList(){
+  const ul = $('file-list'); ul.innerHTML = '';
+  for(const [key, f] of Object.entries(FILES)){
+    if(!f) continue;
+    const m = FILE_META[key]||{};
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="tag" style="background:${m.color}">${m.tag}</span>`+
+                   `<span class="nm">${f.name}</span>`+
+                   `<span class="x" data-k="${key}" title="移除">✕</span>`;
+    ul.appendChild(li);
+  }
+  ul.querySelectorAll('.x').forEach(x=>{
+    x.onclick = () => { FILES[x.dataset.k] = null; if(x.dataset.k==='receiving')$('rcv-pasted').classList.add('hidden'); if(x.dataset.k==='tracking')$('trk-pasted').classList.add('hidden'); refreshList(); };
+  });
+}
+function pickFile(key, file){ FILES[key] = file; refreshList(); }
+
+function initDrop(dropId, inputId, fileKey){
+  const drop = $(dropId), inp = $(inputId);
+  drop.onclick = (e) => { if(e.target!==drop) return; inp.click(); };
+  inp.onchange = () => { if(inp.files[0]) pickFile(fileKey, inp.files[0]); };
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('hover'); }));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('hover'); }));
+  drop.addEventListener('drop', e => { if(e.dataTransfer&&e.dataTransfer.files.length) pickFile(fileKey, e.dataTransfer.files[0]); });
+}
+initDrop('drop-customs','f-customs','customs');
+initDrop('drop-booking','f-booking','booking');
+
+/* 粘贴截图识别（字段区辅助，不计入“上传单据”两个区） */
+function handlePaste(e, fileKey){
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){
+      const blob = it.getAsFile();
+      if(blob){
+        const name = (fileKey==='receiving' ? 'paste_receiving' : 'paste_tracking') + '.png';
+        pickFile(fileKey, new File([blob], name, {type:'image/png'}));
+        (fileKey==='receiving' ? $('rcv-pasted') : $('trk-pasted')).classList.remove('hidden');
+        e.preventDefault();
+      }
+    }
+  }
+}
+$('drop-rcv').addEventListener('paste', e=>handlePaste(e,'receiving'));
+$('drop-trk').addEventListener('paste', e=>handlePaste(e,'tracking'));
+
+/* ───────── 左栏：客户下拉（工厂/INVOICE） ───────── */
+async function loadCustomerSelects(){
+  const d = await (await fetch('/api/bol/customers')).json();
+  const custs = d.customers||[];
+  // 工厂账单下拉：仅 factory + 默认模板(null类型)
+  const facSel=$('i-fac-cust'); facSel.innerHTML='';
+  const facCusts = custs.filter(c => !c.customer_type || c.customer_type==='factory');
+  facCusts.forEach(c=>{
+    const o=document.createElement('option'); o.value=c.id;
+    o.textContent = c.code==='*DEFAULT*' ? '★ 默认模板'
+      : `${c.code||''} · ${c.name||''}`.trim();
+    facSel.appendChild(o);
+  });
+  // INVOICE 客户下拉：仅 customer + 默认模板(null类型)
+  const invSel=$('i-inv-cust'); invSel.innerHTML='';
+  const invCusts = custs.filter(c => !c.customer_type || c.customer_type==='customer');
+  invCusts.forEach(c=>{
+    const o=document.createElement('option'); o.value=c.id;
+    o.textContent = c.code==='*DEFAULT*' ? '★ 默认模板'
+      : `${c.code||''} · ${c.name||''}`.trim();
+    invSel.appendChild(o);
+  });
+  // 自动选中默认模板或第一个
+  const def=custs.find(c=>c.code==='*DEFAULT*');
+  const facFirst=(facCusts[0]||{}).id;
+  const invFirst=(invCusts[0]||{}).id;
+  $('i-fac-cust').value = def?def.id:facFirst;
+  $('i-inv-cust').value = def?def.id:invFirst;
+  // 需求6：INVOICE 客户选择后，带出其原费用作为每票手录起点
+  $('i-inv-cust').onchange = () => renderInvManual(Number($('i-inv-cust').value));
+  await renderInvManual(Number($('i-inv-cust').value));
+}
+
+/* ───────── 右栏：客户信息库 ───────── */
+let LIB_ID = null;
+const CALC_MODES = ['FIXED','UNIT_PRICE','FORMULA'];
+
+function openLib(editId){
+  $('cols').classList.add('lib-open');
+  if(editId!=null) LIB_ID = Number(editId);
+  libLoadCustomers().then(()=>{ if(LIB_ID!=null) $('i-cust').value = LIB_ID; if(LIB_ID!=null) libLoadDetail(); });
+}
+function closeLib(){ $('cols').classList.remove('lib-open'); }
+
+async function libLoadCustomers(){
+  const d = await (await fetch('/api/bol/customers')).json();
+  window._allCustomers = d.customers||[];  // 缓存供 speech panel 复用
+  const sel=$('i-cust'); sel.innerHTML='';
+  (d.customers||[]).forEach(c=>{
+    const o=document.createElement('option'); o.value=c.id;
+    o.textContent = c.code==='*DEFAULT*' ? '★ 默认模板'
+      : `${c.code||''} · ${c.name||''}`.trim(); sel.appendChild(o);
+  });
+  const def=(d.customers||[]).find(c=>c.code==='*DEFAULT*');
+  if(LIB_ID==null) LIB_ID = def?def.id:(d.customers||[])[0]?.id||null;
+  sel.value=LIB_ID;
+}
+$('i-cust').onchange = async ()=>{ LIB_ID=Number($('i-cust').value); await libLoadDetail(); };
+$('i-ctype').onchange = libApplyType;
+
+function libApplyType(){
+  const t = $('i-ctype').value;
+  const lb = $('lib-body');
+  lb.classList.remove('cust-type-factory','cust-type-customer');
+  if(t==='factory') lb.classList.add('cust-type-factory');
+  else if(t==='customer') lb.classList.add('cust-type-customer');
+  $('k-name').textContent = t==='factory' ? '工厂简称 Name' : '客户简称 Name';
+}
+
+async function libLoadDetail(){
+  if(!LIB_ID) return;
+  const d = await (await fetch('/api/bol/customers')).json();
+  const c = (d.customers||[]).find(x=>x.id==LIB_ID);
+  if(c){
+    $('i-code').value=c.code&&c.code!=='*DEFAULT*'?c.code:'';
+    $('i-name').value=c.name||'';
+    $('i-billing').value=c.billing_title||'';
+    $('i-cn-name').value=c.consignee_name||'';
+    $('i-cn-addr').value=c.consignee_addr||'';
+    $('i-cn-contact').value=c.consignee_contact||'';
+    $('i-sp-name').value=c.shipper_name||'';
+    $('i-sp-addr').value=c.shipper_addr||'';
+    $('i-sp-contact').value=c.shipper_contact||'';
+    $('i-ctype').value = c.customer_type || '';
+    $('i-invtitle').value = c.invoice_title || '';
+    $('i-csr').value = c.csr_name || '';
+    libApplyType();
+  }
+  const fac=await (await fetch(`/api/bol/charge-profiles?customer_id=${LIB_ID}&kind=factory`)).json();
+  libRenderTable('tbl-factory', fac.profiles||[]);
+  await libLoadHistory();
+}
+async function libLoadHistory(){
+  const d=await (await fetch(`/api/bol/shipments?customer_id=${LIB_ID}`)).json();
+  const rows=d.shipments||[];
+  if(!rows.length){ $('hist-box').innerHTML='<span style="color:#57606a">暂无历史记录。</span>'; return; }
+  let h='<table><thead><tr><th>提单号</th><th>单号/船名</th><th>ATD</th><th>ETA</th><th>件/重/体</th><th>生成范围</th><th>时间</th></tr></thead><tbody>';
+  for(const r of rows){
+    h+=`<tr><td>${esc(r.bl_no)}</td><td>${esc(r.vessel)}</td><td>${esc(r.atd)}</td><td>${esc(r.eta)}</td>`+
+       `<td>${r.ctns??''} / ${r.gw??''} / ${r.cbm??''}</td><td>${esc(r.docs)}</td><td>${(r.created_at||'').replace('T',' ')}</td></tr>`;
+  }
+  h+='</tbody></table>';
+  $('hist-box').innerHTML=h;
+}
+// 费用表列配置：工厂账单（保底/公式）与 INVOICE（描述，无保底/公式）不同
+// tbl-inv-manual：有「描述」(映射模板 DESCRIPTION C 列)，无保底/公式（需求 2026-08-18）
+const TABLE_COLS = {
+  'tbl-factory':    {desc:false, min:true,  formula:true},
+  'tbl-inv-manual': {desc:true,  min:false, formula:false},
+};
+function libAddRow(tblId, r){
+  const col=TABLE_COLS[tblId]||{desc:false,min:true,formula:true};
+  const tb=$(tblId).querySelector('tbody');
+  const tr=document.createElement('tr');
+  const cDesc = col.desc?`<td><input class="c-desc" value="${esc(r.desc||'')}" placeholder="Description"></td>`:'';
+  const cMin  = col.min?`<td><input class="c-min" value="${r.min_amount!=null?r.min_amount:''}"></td>`:'';
+  const cFml  = col.formula?`<td><input class="c-formula" value="${esc(r.formula)}"></td>`:'';
+  tr.innerHTML=`
+    <td><input class="c-name" value="${esc(r.name)}"></td>
+    ${cDesc}
+    <td><select class="c-mode">${CALC_MODES.map(m=>`<option ${m===(r.calc_mode||'FIXED')?'selected':''}>${m}</option>`).join('')}</select></td>
+    <td><input class="c-unit" value="${esc(r.unit)}"></td>
+    <td><input class="c-price" value="${r.unit_price!=null?r.unit_price:''}"></td>
+    <td><input class="c-qty" value="${esc(r.qty_var)}"></td>
+    ${cMin}
+    <td><input class="c-currency" value="${esc(r.currency||'')}" placeholder="USD"></td>
+    <td><input class="c-rate" value="${r.exchange_rate!=null&&r.exchange_rate!=1?r.exchange_rate:''}" placeholder="1.0"></td>
+    ${cFml}
+    <td class="rm" title="删除">✕</td>`;
+  tr.querySelector('.rm').onclick=()=>tr.remove();
+  tb.appendChild(tr);
+}
+function libRenderTable(tblId, rows){
+  const tb=$(tblId).querySelector('tbody'); tb.innerHTML='';
+  rows.forEach(r=>libAddRow(tblId,r));
+  // 默认置空：新客户不预填费用行（空表，用「＋ 增加一行」添加）
+}
+function libCollect(tblId){
+  const col=TABLE_COLS[tblId]||{desc:false,min:true,formula:true};
+  const out=[];
+  $(tblId).querySelectorAll('tbody tr').forEach(tr=>{
+    const g=s=>tr.querySelector(s).value.trim();
+    const name=g('.c-name'); if(!name) return;
+    const price=g('.c-price');
+    const rate=g('.c-rate');
+    const item={name, calc_mode:g('.c-mode'), unit:g('.c-unit'),
+      unit_price:price?Number(price):0, qty_var:g('.c-qty'),
+      currency:(g('.c-currency')||'USD').toUpperCase(),
+      exchange_rate:rate?Number(rate):1.0};
+    if(col.desc) item.desc=g('.c-desc')||name;
+    if(col.min)  item.min_amount=g('.c-min')?Number(g('.c-min')):null;
+    if(col.formula) item.formula=g('.c-formula');
+    out.push(item);
+  });
+  return out;
+}
+$('lib-add-fac').onclick=()=>{
+  // 需求（2026-08-18）：工厂账单费用行数不设上限（生成端自动插入行承接）
+  libAddRow('tbl-factory',{});
+};
+
+$('lib-new').onclick=()=>{
+  LIB_ID=null; $('i-cust').value='';
+  ['i-code','i-name','i-billing','i-cn-name','i-cn-addr','i-cn-contact','i-sp-name','i-sp-addr','i-sp-contact','i-invtitle','i-csr']
+    .forEach(id=>$(id).value='');
+  $('i-ctype').value='factory'; libApplyType();
+  libRenderTable('tbl-factory',[]);
+  $('hist-box').innerHTML='<span style="color:#57606a">新建客户：填写后点保存。</span>';
+  $('lib-cust-msg').textContent=''; $('lib-save-msg').textContent='';
+};
+$('lib-del').onclick=async()=>{
+  if(!LIB_ID){ $('lib-cust-msg').textContent='请先选择要删除的客户'; return; }
+  if(LIB_ID=== (await firstDefaultId())){ $('lib-cust-msg').textContent='默认模板不可删除'; return; }
+  if(!confirm('确认删除该客户及其费用/历史？')) return;
+  const r=await fetch('/api/bol/customers/'+LIB_ID,{method:'DELETE'});
+  const d=await r.json();
+  if(d.error){ $('lib-cust-msg').textContent=d.error; return; }
+  await libLoadCustomers(); $('lib-save-msg').textContent='已删除 ✓';
+  await loadCustomerSelects();
+};
+async function firstDefaultId(){
+  const d=await (await fetch('/api/bol/customers')).json();
+  return (d.customers||[]).find(c=>c.code==='*DEFAULT*')?.id;
+}
+$('lib-save').onclick=async()=>{
+  const body={
+    id:LIB_ID,
+    code:$('i-code').value.trim(),
+    name:$('i-name').value.trim(),
+    customer_type:$('i-ctype').value || null,
+    billing_title:$('i-billing').value.trim(),
+    consignee_name:$('i-cn-name').value.trim(),
+    consignee_addr:$('i-cn-addr').value.trim(),
+    consignee_contact:$('i-cn-contact').value.trim(),
+    shipper_name:$('i-sp-name').value.trim(),
+    shipper_addr:$('i-sp-addr').value.trim(),
+    shipper_contact:$('i-sp-contact').value.trim(),
+    invoice_title:$('i-invtitle').value.trim(),
+    csr_name:$('i-csr').value.trim(),
+  };
+  if(!body.name){ $('lib-cust-msg').textContent='客户名称不能为空'; return; }
+  $('lib-save-msg').textContent='';
+  try{
+    const r=await fetch('/api/bol/customers',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.error){ $('lib-cust-msg').textContent=d.error; return; }
+    LIB_ID=d.customer.id;
+    await fetch('/api/bol/charge-profiles',{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer_id:LIB_ID,kind:'factory',profiles:libCollect('tbl-factory')})});
+    await libLoadCustomers(); $('i-cust').value=LIB_ID;
+    await loadCustomerSelects();
+    $('lib-save-msg').textContent='已保存 ✓';
+    setTimeout(()=>$('lib-save-msg').textContent='',2500);
+  }catch(e){ $('lib-cust-msg').textContent='保存失败: '+e; }
+};
+
+/* 左栏按钮 → 开/关右栏 */
+$('btn-newcust').onclick  = () => { closeSpeechPanel(); $('lib-new').onclick(); openLib(null); };
+$('btn-editcust').onclick = () => { closeSpeechPanel(); openLib(Number($('i-fac-cust').value)); };
+$('lib-close').onclick    = closeLib;
+
+/* ───────── 右栏：预报话术管理（独立面板） ───────── */
+let SPEECH_CUST_ID = null;
+function openSpeechPanel(cid){
+  closeLib();
+  $('cols').classList.add('speech-open');
+  if(cid!=null) SPEECH_CUST_ID = Number(cid);
+  libLoadCustomers().then(()=>{       // 复用客户列表填充
+    const sel=$('i-speech-cust'); sel.innerHTML='';
+    (window._allCustomers||[]).forEach(c=>{
+      const o=document.createElement('option'); o.value=c.id;
+      o.textContent = c.code==='*DEFAULT*' ? '★ 默认模板' : `${c.code||''} · ${c.name||''}`.trim();
+      sel.appendChild(o);
+    });
+    if(SPEECH_CUST_ID!=null) sel.value=SPEECH_CUST_ID;
+    else sel.value = (window._allCustomers||[])[0]?.id||'';
+    SPEECH_CUST_ID = Number(sel.value)||null;
+    loadSpeechTemplates();
+    loadVars();
+  });
+}
+function closeSpeechPanel(){ $('cols').classList.remove('speech-open'); }
+$('speech-close').onclick = closeSpeechPanel;
+$('i-speech-cust').onchange = ()=>{ SPEECH_CUST_ID=Number($('i-speech-cust').value); loadSpeechTemplates(); };
+
+/* ───────── 解析 ───────── */
+$('btn-parse').onclick = async () => {
+  const cf=FILES.customs, bf=FILES.booking;
+  $('parse-msg').textContent='';
+  const fd = new FormData();
+  if(cf) fd.append('customs', cf);
+  if(bf) fd.append('booking', bf);
+  if(FILES.receiving) fd.append('receiving', FILES.receiving);
+  if(FILES.tracking) fd.append('tracking', FILES.tracking);
+  const trkText = $('t-tracking-text').value.trim();
+  if(trkText) fd.append('tracking_text', trkText);
+  fd.append('customer_id', $('i-fac-cust').value);
+  $('btn-parse').disabled=true; $('btn-parse').textContent='解析中…';
+  try{
+    const r = await fetch('/api/bol/parse',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.error){ $('parse-msg').textContent=d.error; return; }
+    ORDER = d.order; CAND = d.vessel_candidates||[];
+    SPEECH = d.speech_templates||[];
+    RCV_DATA = d.receiving||{};
+    TRK_DATA = d.tracking||{};
+    fillFields(d);
+    await applyCustomerDefaults(Number($('i-fac-cust').value));
+    await loadSpeechVersions();
+    $('card-gen').classList.remove('hidden');
+  }catch(e){ $('parse-msg').textContent='解析异常(网络/服务): '+e; }
+  finally{ $('btn-parse').disabled=false; $('btn-parse').textContent='解析全部'; }
+};
+
+function fillFields(d){
+  $('i-bl').value = ORDER.bl_no||'';
+  // 装船时间：仅取轨迹 ATD（shipped_date），绝不回退报关单申报日期
+  $('i-ship').value = ORDER.shipped_date || '';
+  $('i-vessel').value = ORDER.vessel||'';
+  const pk = ORDER.packing_kind||'';
+  $('i-pkg').value = (ORDER.ctns||'') + (pk.includes('木')?'PKGS':(pk.includes('纸')?'CTNS':'PKGS'));
+  // 需求3：封条默认生成值 //
+  $('i-seal').value = ORDER.seal_no || '//';
+  $('i-goods').value = ORDER.goods_name||'';
+  $('i-customer-po').value = ORDER.customer_po||'';
+  $('i-customer-po-on-bl').checked = (ORDER.customer_po_on_bl !== false);
+  // 需求6：Due Date 每票手录（回显既有覆盖值）
+  $('i-inv-due').value = ORDER.due_date_override || '';
+  $('i-atd').value = ORDER.atd || TRK_DATA.atd || '';
+  $('i-eta').value = ORDER.eta || TRK_DATA.eta || '';
+  $('i-rcv-ctns').value = ORDER.ctns||'';
+  $('i-rcv-gw').value = ORDER.gw ? String(ORDER.gw) : '';
+  $('i-rcv-cbm').value = ORDER.cbm ? String(ORDER.cbm) : '';
+  $('i-rcv-cw').value = ORDER.chargeable_weight ? String(ORDER.chargeable_weight) : '';
+  if(RCV_DATA.pkg_count!=null && RCV_DATA.pkg_count!=ORDER.ctns){
+    $('i-rcv-ctns').style.borderColor='var(--b)';
+    $('i-rcv-ctns').title='收货截图: '+RCV_DATA.pkg_count+' (已自动采用)';
+  }
+  if(RCV_DATA.gross_weight!=null) $('i-rcv-gw').title='收货截图: '+RCV_DATA.gross_weight;
+  if(RCV_DATA.volume_cbm!=null) $('i-rcv-cbm').title='收货截图: '+RCV_DATA.volume_cbm;
+  if(TRK_DATA.vessel_voyage && !ORDER.vessel){ $('i-vessel').value = TRK_DATA.vessel_voyage; }
+  // 抬头字段（可编辑，识别值优先；选中客户后可被客户默认值覆盖）
+  $('i-consignee').value = ORDER.consignee||'';
+  $('i-shipper').value = ORDER.shipper_cn||'';
+  $('i-trade').value = ORDER.trade_term||'';
+  $('i-order').value = ORDER.order_no||'';
+  // 可手动编辑并保存的四字段
+  $('i-pol').value = ORDER.pol||'';
+  $('i-pod').value = ORDER.pod||'';
+  $('i-cont').value = ORDER.container_no||'';
+  let w = '';
+  if(CAND.length) w += `<div class="warn">船名候选 ${CAND.length} 项：`+ CAND.map(c=>`${c.value}${c.recommend?'（推荐）':''}`).join(' ｜ ')+`</div>`;
+  if((d.warnings||[]).length) w += `<div class="warn">`+d.warnings.join('<br>')+`</div>`;
+  if(TRK_DATA.vessel_voyage && !ORDER.vessel) w += `<div class="warn">轨迹识别到船名「${TRK_DATA.vessel_voyage}」，已预填上方输入框</div>`;
+  $('warn-box').innerHTML = w;
+}
+
+/* ───────── 生成 ───────── */
+// 用户要求：导出文件必须从「字段确认栏位」读取最新值，任何可在界面编辑的字段都要纳入 overrides，
+// 否则后端会回退到 OCR/parse 阶段冻结的旧值，导致所见非所得。
+function collectOverrides(){
+  const _numOrNull = (s) => (s === null || s === undefined || String(s).trim() === '') ? null : Number(s);
+  const _strOrNull = (s) => (s === null || s === undefined || String(s).trim() === '') ? null : String(s).trim();
+  return {
+    // —— 抬头字段（界面可编辑）——
+    bl_no: _strOrNull($('i-bl').value),
+    shipped_date: _strOrNull($('i-ship').value),
+    picked_vessel: _strOrNull($('i-vessel').value),
+    seal_no: _strOrNull($('i-seal').value),
+    pkg_desc: _strOrNull($('i-pkg').value),
+    goods_name: _strOrNull($('i-goods').value),
+    customer_po: _strOrNull($('i-customer-po').value),
+    customer_po_on_bl: $('i-customer-po-on-bl').checked,
+    atd: _strOrNull($('i-atd').value),
+    eta: _strOrNull($('i-eta').value),
+    pol: _strOrNull($('i-pol').value),
+    pod: _strOrNull($('i-pod').value),
+    container_no: _strOrNull($('i-cont').value),
+    // —— 收发货人 / 成交方式 / 订单号（textarea + input，编辑后必须进单据）——
+    consignee: _strOrNull($('i-consignee').value),
+    shipper_cn: _strOrNull($('i-shipper').value),
+    trade_term: _strOrNull($('i-trade').value),
+    order_no: _strOrNull($('i-order').value),
+    // —— 客户（用于取费用档案）——
+    factory_customer_id: Number($('i-fac-cust').value) || null,
+    invoice_customer_id: Number($('i-inv-cust').value) || null,
+    // —— 需求6：INVOICE 每票手录（费用标准 + Due Date）——
+    due_date: _strOrNull($('i-inv-due').value),
+    // —— 需求2（2026-08-18）：账单总币别（前端手录，默认 USD）——
+    invoice_currency: _strOrNull($('i-inv-currency').value) || 'USD',
+    invoice_profiles: collectInvManual(),
+    // —— 件重体（这是用户改得最多的字段，尤其是 OCR 行）——
+    ctns: _numOrNull($('i-rcv-ctns').value),
+    gw:   _numOrNull($('i-rcv-gw').value),
+    cbm:  _numOrNull($('i-rcv-cbm').value),
+    chargeable_weight: _numOrNull($('i-rcv-cw').value),
+  };
+}
+
+$('btn-gen').onclick = () => {
+  const ov = collectOverrides();
+  const sel = [...document.querySelectorAll('.sel:checked')].map(c=>c.value);
+  $('gen-msg').textContent='';
+  $('btn-gen').disabled=true; $('btn-gen').textContent='生成中…';
+  fetch('/api/bol/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({order:ORDER,overrides:ov,selections:sel,speech_version:$('i-speech-ver').value})})
+  .then(r=>r.json()).then(d=>{
+    if(d.error){ $('gen-msg').textContent=d.error; return; }
+    renderRes(d);
+  }).catch(e=>$('gen-msg').textContent='生成异常: '+e)
+  .finally(()=>{ $('btn-gen').disabled=false; $('btn-gen').textContent='生成并导出'; });
+};
+
+/* ───────── 四字段保存为客户习惯 ───────── */
+$('btn-save-habits').onclick = async () => {
+  const cid = Number($('i-fac-cust').value);
+  if(!cid){ $('habits-msg').textContent='请先选择工厂账单客户'; return; }
+  const values = {
+    pol:$('i-pol').value.trim(),
+    pod:$('i-pod').value.trim(),
+    container_no:$('i-cont').value.trim(),
+    trade_term:$('i-trade').value.trim(),
+    order_no:$('i-order').value.trim(),
+  };
+  $('habits-msg').textContent='';
+  try{
+    const r=await fetch('/api/bol/habits/bulk',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer_id:cid,values})});
+    const d=await r.json();
+    if(d.error){ $('habits-msg').textContent=d.error; return; }
+    // 同步收货人/发货人回客户信息库（customers 表，按换行拆分 name/addr/contact）
+    const cnVal = ($('i-consignee').value||'').trim();
+    const spVal = ($('i-shipper').value||'').trim();
+    const cnLines = cnVal.split('\n').map(s=>s.trim()).filter(Boolean);
+    const spLines = spVal.split('\n').map(s=>s.trim()).filter(Boolean);
+    await fetch('/api/bol/customers',{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:cid,
+        consignee_name:cnLines[0]||'', consignee_addr:cnLines[1]||'', consignee_contact:cnLines[2]||'',
+        shipper_name:spLines[0]||'', shipper_addr:spLines[1]||'', shipper_contact:spLines[2]||''})});
+    $('habits-msg').textContent='已保存并同步至客户信息库 ✓';
+    setTimeout(()=>$('habits-msg').textContent='',2500);
+  }catch(e){ $('habits-msg').textContent='保存失败: '+e; }
+};
+
+/* 选中客户后自动填充：收货人/发货人始终从客户库带入；成交方式等仅当目标为空时才填入习惯值 */
+async function applyCustomerDefaults(cid){
+  if(!cid) return;
+  try{
+    const d = await (await fetch('/api/bol/customers')).json();
+    const c = (d.customers||[]).find(x=>x.id==cid);
+    const h = await (await fetch(`/api/bol/habits?customer_id=${cid}`)).json();
+    const habits = h.habits||{};
+    // 收货人/发货人：始终从客户库带入（用户期望"选客户→更新收发货人"）
+    if(c){
+      const cnParts=[c.consignee_name||'',c.consignee_addr||'',c.consignee_contact||''].filter(Boolean);
+      $('i-consignee').value = cnParts.join('\n');
+      const spParts=[c.shipper_name||'',c.shipper_addr||'',c.shipper_contact||''].filter(Boolean);
+      $('i-shipper').value = spParts.join('\n');
+    }
+    // 成交方式/订单号/起运港等：仅在字段为空时填入习惯值，绝不覆盖已提取内容
+    const setIfEmpty=(id, val)=>{ const el=$(id); if(!el.value) el.value=val||''; };
+    setIfEmpty('i-trade', habits.trade_term);
+    setIfEmpty('i-order', habits.order_no);
+    setIfEmpty('i-pol', habits.pol);
+    setIfEmpty('i-pod', habits.pod);
+    setIfEmpty('i-cont', habits.container_no);
+  }catch(e){ /* ignore */ }
+}
+
+function renderRes(d){
+  let h = '';
+  (d.files||[]).forEach(f=>{
+    h += `<div class="doc"><span class="nm">${f.label}</span>`;
+    if(f.xlsx) h += `<a href="${f.xlsx}" target="_blank">EXCEL</a>`;
+    if(f.pdf)  h += `<a href="${f.pdf}" target="_blank">PDF</a>`;
+    h += `</div>`;
+  });
+  if(d.speech){
+    h += `<div class="res"><div class="nm" style="font-weight:600;margin-bottom:2px">预报话术</div><pre>${d.speech}</pre></div>`;
+  }
+  $('res-box').innerHTML = h;
+}
+
+async function fetchTemplates(cid){
+  try{
+    const d = await (await fetch(`/api/bol/speech-templates?customer_id=${cid}`)).json();
+    return d.templates||[];
+  }catch(e){ return []; }
+}
+
+/* 生成下拉：显示客户专属 + 共用话术（Req5） */
+async function loadSpeechVersions(){
+  const cid = Number($('i-fac-cust').value);
+  const tpls = await fetchTemplates(cid);
+  $('i-speech-ver').innerHTML = tpls.length
+    ? tpls.map(t=>{
+        const scope = t.scope==='shared' ? '【共用】' : '【客户专属】';
+        return `<option value="${t.id}">${scope} ${esc(t.name)}${t.is_default?' ⭐':''}</option>`;
+      }).join('')
+    : '<option value="">（无话术）</option>';
+  // 自动选默认版本
+  const def = tpls.find(t=>t.is_default);
+  if(def) $('i-speech-ver').value = def.id;
+  else if(tpls.length) $('i-speech-ver').value = tpls[0].id;
+}
+
+/* ───────── 左栏话术按钮 → 打开独立话术面板 ───────── */
+$('btn-speech').onclick = () => {
+  const cid = Number($('i-fac-cust').value);
+  openSpeechPanel(cid);
+};
+
+async function loadVars(){
+  try{
+    const d = await (await fetch('/api/bol/speech-vars')).json();
+    const box=$('vars-box2'); box.innerHTML='<span class="hint">可用变量（点击插入到光标处）：</span>';
+    (d.vars||[]).forEach(v=>{
+      const b=document.createElement('button');
+      b.className='varbtn'; b.textContent='{{'+v.key+'}}';
+      b.title=v.label||v.key;
+      b.style.cssText='background:#eaeef2;color:#24292f;border:1px solid var(--bd);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;margin:2px';
+      b.onclick=()=>insertSpeechVar(v.key);
+      box.appendChild(b);
+    });
+  }catch(e){}
+}
+
+function insertSpeechVar(key){
+  const ta=$('e-body'); const tok='{{'+key+'}}';
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+tok+ta.value.slice(e);
+  ta.focus(); ta.selectionStart=ta.selectionEnd=s+tok.length;
+}
+
+async function loadSpeechTemplates(){
+  const cid = SPEECH_CUST_ID;
+  if(!cid){ $('speech-list').innerHTML='<span class="hint">请先选择客户。</span>'; return; }
+  try{
+    const d=await (await fetch(`/api/bol/speech-templates?customer_id=${cid}`)).json();
+    const tpls=d.templates||[];
+    if(!tpls.length){ $('speech-list').innerHTML='<div class="hint">暂无话术，点击「＋ 新增话术」创建。</div>'; return; }
+    $('speech-list').innerHTML=tpls.map(t=>{
+      const scopeBadge = t.scope==='shared'
+        ? '<span class="badge" style="font-size:10px;padding:1px 6px;border-radius:3px;background:#dbeafe;color:#0645ad;margin-left:6px">共用</span>'
+        : '<span class="badge" style="font-size:10px;padding:1px 6px;border-radius:3px;background:#eaeef2;color:#57606a;margin-left:6px">客户专属</span>';
+      const defBadge = t.is_default?'<span class="badge" style="font-size:10px;padding:1px 6px;border-radius:3px;background:#fff8c5;color:#9a6700;margin-left:4px">⭐默认</span>':'';
+      return `<div class="tpl" data-id="${t.id}" style="border:1px solid var(--bd);border-radius:6px;background:#fff;padding:8px 10px;margin-bottom:6px">
+        <div class="name" style="font-weight:600;display:flex;align-items:center;gap:6px">${esc(t.name)}${scopeBadge}${defBadge}</div>
+        <div class="body" style="margin-top:4px;white-space:pre-wrap;background:#f6f8fa;border:1px solid var(--bd);border-radius:4px;padding:8px;font-size:12px;max-height:100px;overflow:auto;word-break:break-all">${esc(t.body)}</div>
+        <div style="margin-top:4px;display:flex;gap:6px">
+          <button class="ghost mini" data-act="edit" data-id="${t.id}">✎ 编辑</button>
+          <button class="ghost mini" data-act="del" data-id="${t.id}">🗑 删除</button>
+        </div>
+      </div>`;
+    }).join('');
+    $('speech-list').querySelectorAll('[data-act]').forEach(b=>{
+      b.onclick=()=>{ b.dataset.act==='edit'?openSpeechEditor(Number(b.dataset.id)):delSpeech(Number(b.dataset.id)); };
+    });
+    $('speech-cust-label').textContent = '— 客户专属 + 共用';
+  }catch(e){ $('speech-list').innerHTML='<span class="err">加载失败</span>'; }
+}
+
+function openSpeechEditor(id){
+  $('speech-msg').textContent='';
+  if(id==null){
+    $('e-id').value=''; $('e-name').value=''; $('e-body').value=''; $('e-default').checked=false;
+  }else{
+    const el=document.querySelector(`#speech-list .tpl[data-id="${id}"]`);
+    if(el){
+      $('e-id').value=id;
+      $('e-name').value=el.querySelector('.name').childNodes[0].textContent.trim();
+      $('e-body').value=el.querySelector('.body').textContent;
+    }
+    $('e-default').checked=false;
+  }
+  $('speech-editor').classList.remove('hidden');
+  $('speech-preview-box').classList.add('hidden');
+}
+function closeSpeechEditor(){ $('speech-editor').classList.add('hidden'); }
+
+async function saveSpeech(){
+  const id=$('e-id').value||null;
+  const body={
+    id: id?Number(id):null,
+    name:$('e-name').value.trim(),
+    body:$('e-body').value,
+    is_default:$('e-default').checked,
+    customer_id: SPEECH_CUST_ID,  // 当前话术面板选中的客户
+  };
+  if(!body.name){ $('speech-msg').textContent='请填写话术名称'; return; }
+  if(!body.body.trim()){ $('speech-msg').textContent='请填写话术正文'; return; }
+  $('speech-msg').textContent='';
+  try{
+    const r=await fetch('/api/bol/speech-templates',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.error){ $('speech-msg').textContent=d.error; return; }
+    closeSpeechEditor(); await loadSpeechTemplates(); await loadSpeechVersions();
+  }catch(e){ $('speech-msg').textContent='保存失败: '+e; }
+}
+
+async function delSpeech(id){
+  if(!confirm('确认删除该话术？')) return;
+  try{
+    const r=await fetch('/api/bol/speech-templates/'+id,{method:'DELETE'});
+    const d=await r.json();
+    if(d.error){ alert(d.error); return; }
+    await loadSpeechTemplates(); await loadSpeechVersions();
+  }catch(e){ alert('删除失败: '+e); }
+}
+
+async function previewSpeech(){
+  try{
+    const r=await fetch('/api/bol/speech-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({body:$('e-body').value, use_sample:true, customer_id:SPEECH_CUST_ID})});
+    const d=await r.json();
+    const box=$('speech-preview-box');
+    box.classList.remove('hidden');
+    box.innerHTML='<div style="font-weight:600;color:#57606a;margin-bottom:4px">预览（示例值）</div>'+
+      '<pre style="background:#f6f8fa;border:1px solid var(--bd);border-radius:4px;padding:8px;white-space:pre-wrap;font-size:12px">'+esc(d.text||'')+'</pre>'+
+      (d.missing&&d.missing.length?'<div class="hint">未命中变量：'+d.missing.join(', ')+'</div>':'');
+  }catch(e){ $('speech-msg').textContent='预览失败: '+e; }
+}
+
+$('btn-speech-new').onclick = () => openSpeechEditor(null);
+$('btn-speech-cancel').onclick = closeSpeechEditor;
+$('btn-speech-save').onclick = saveSpeech;
+$('btn-speech-preview').onclick = previewSpeech;
+
+
+loadCustomerSelects().then(()=>{ loadSpeechVersions(); });
+$('i-fac-cust').onchange = () => { applyCustomerDefaults(Number($('i-fac-cust').value)); loadSpeechVersions(); };
+
+/* ───────── 需求7：客户/工厂账单下拉关键字筛选 ───────── */
+document.querySelectorAll('.sel-filter').forEach(inp=>{
+  inp.addEventListener('input', ()=>{
+    const sel = document.getElementById(inp.dataset.for);
+    if(!sel) return;
+    const kw = inp.value.trim().toLowerCase();
+    [...sel.options].forEach(o=>{ o.hidden = !!kw && o.textContent.toLowerCase().indexOf(kw)<0; });
+    if(sel.selectedIndex>=0 && sel.options[sel.selectedIndex].hidden){
+      const vis=[...sel.options].find(o=>!o.hidden);
+      if(vis) sel.value=vis.value;
+    }
+  });
+});
+
+/* ───────── 需求6：INVOICE 费用标准手录区（每票手录为准，不写入客户库） ───────── */
+async function renderInvManual(cid){
+  const rows=[];
+  if(cid){
+    try{
+      const d=await (await fetch(`/api/bol/charge-profiles?customer_id=${cid}&kind=invoice`)).json();
+      rows.push(...(d.profiles||[]));
+    }catch(e){ /* 忽略 */ }
+  }
+  // 需求（2026-08-18）：INVOICE 费用行数不设上限，全部带入（生成端自动插入行承接）
+  libRenderTable('tbl-inv-manual', rows);
+}
+function collectInvManual(){
+  return libCollect('tbl-inv-manual');
+}
+$('inv-add-row').onclick=()=>{
+  // 需求（2026-08-18）：INVOICE 费用行数不设上限（生成端自动插入行承接，PDF 单页缩放）
+  libAddRow('tbl-inv-manual',{});
+};
+</script>
+</body>
+</html>

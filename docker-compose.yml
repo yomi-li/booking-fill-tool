@@ -3,6 +3,8 @@
 # 说明：
 #   - 数据落在命名卷 booking_data（/data），SKU 库/图片/规则/配置重部署不丢
 #   - 首次启动自动从镜像拷贝种子数据到 /data
+#   - bol_forecast 模块：app.db / jobs / logs 也都在 /data
+#   - BOL_RENDERER 默认 html（Linux 唯一可用路径）；要切回 com 必须 Windows+Office
 #   - 上线前务必在 .env 里设置 APP_PASSWORD（公网必设，否则裸奔）
 services:
   booking-fill-tool:
@@ -15,6 +17,7 @@ services:
     environment:
       - DATA_DIR=/data
       - PORT=8000
+      - BOL_RENDERER=${BOL_RENDERER:-html}
       - APP_PASSWORD=${APP_PASSWORD:-}   # 必须通过 .env 设置强密码
     volumes:
       - booking_data:/data

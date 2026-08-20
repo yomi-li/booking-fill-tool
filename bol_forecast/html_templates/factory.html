@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>工厂账单 · {{ ctx.bl_no or "" }}</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="../factory.css">
+</head>
+<body>
+
+<div class="factory-sheet">
+
+    <div class="factory-header">
+        <div class="logo">
+            <img class="logo-fact" src="../static/img/factory_logo.png" alt="LOGO">
+        </div>
+        <h1>运费确认书 / Freight Confirmation</h1>
+        <div style="width: 50pt;"></div>
+    </div>
+
+    <!-- 收件方信息 -->
+    <table class="info-table">
+        <tr>
+            <td class="label">致 / To:</td>
+            <td class="value" colspan="3" style="font-size:{{ ctx.sizes.to_name }}pt;">{{ ctx.to_name or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">客服 / CSR:</td>
+            <td class="value">{{ ctx.attn or "" }}</td>
+            <td class="label">发件方 / From:</td>
+            <td class="value" style="font-size:{{ ctx.sizes.from_name }}pt;">{{ ctx.from_name or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">工厂联系人</td>
+            <td class="value" colspan="3">{{ ctx.shipper or "" }}</td>
+        </tr>
+    </table>
+
+    <!-- 提单/柜号/船名/航次 -->
+    <table class="info-table">
+        <tr>
+            <td class="label">工作号 / Work No.</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.work_no }}pt;">{{ ctx.work_no or "" }}</td>
+            <td class="label">发票号 / Invoice No.</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.invoice_no }}pt;">{{ ctx.invoice_no or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">提单号 / B/L No.</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.bl_no }}pt;">{{ ctx.bl_no or "" }}</td>
+            <td class="label">货量 / Marks</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.marks }}pt;">{{ ctx.marks or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">起运港 / POL</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.pol }}pt;">{{ ctx.pol or "" }}</td>
+            <td class="label">装船时间 / On Board</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.shipped_date }}pt;">{{ ctx.shipped_date or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">目的港 / POD</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.pod }}pt;">{{ ctx.pod or "" }}</td>
+            <td class="label">船名航次 / Vessel</td>
+            <td class="value value-en" style="font-size:{{ ctx.sizes.vessel }}pt;">{{ ctx.vessel or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">柜号 / Container</td>
+            <td class="value value-en" colspan="3" style="font-size:{{ ctx.sizes.container }}pt;">{{ ctx.container or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">账单日期 / Date</td>
+            <td class="value value-en" colspan="3">{{ ctx.bill_date or "" }}</td>
+        </tr>
+    </table>
+
+    <!-- 费用表 -->
+    <table class="charge-table">
+        <thead>
+            <tr>
+                <th style="width:30%;">费用名称 / Charge</th>
+                <th style="width:12%;">单位 / Unit</th>
+                <th style="width:14%;">单价 / Price</th>
+                <th style="width:12%;">数量 / Qty</th>
+                <th style="width:8%;">币别</th>
+                <th style="width:12%;">金额 / Amount</th>
+                <th style="width:12%;">备注 / Remark</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ctx.charge_rows %}
+            <tr>
+                <td>{{ row.name or "" }}</td>
+                <td class="center">{{ row.unit or "" }}</td>
+                <td class="amount">{{ row.unit_price or "" }}</td>
+                <td class="center">{{ row.qty or "" }}</td>
+                <td class="center">{{ row.currency or "" }}</td>
+                <td class="amount" style="font-size:{{ ctx.sizes.charge_amount }}pt;">{{ row.amount or "" }}</td>
+                <td>{{ row.remark or "" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align:right;">合计 / Total:</td>
+                <td class="amount" style="font-size:{{ ctx.sizes.charge_total }}pt;">{{ ctx.total or "" }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- 账户信息 -->
+    <div class="bank-info">
+        <h3>附：我司账户 / Bank Account</h3>
+        <div>收款单位：深圳市嘀嗒嘀物流科技有限公司</div>
+        <div>开户银行：平安银行深圳分行</div>
+        <div>账号：11014700000000（示例）</div>
+    </div>
+
+    <!-- 客户须知 -->
+    <div class="notice">
+        <h3>客户须知 / Customer Notice</h3>
+        <ol>
+            <li>请核对以上费用，确认无误后请签字回传。</li>
+            <li>如有疑问请在 3 个工作日内与我司客服联系。</li>
+            <li>付款后请及时提供水单及开票资料。</li>
+            <li>本账单仅供确认运费使用，不作为发票凭证。</li>
+        </ol>
+    </div>
+
+    <div class="notice urgent">
+        重要：本账单 24 小时内未回传视为认可全部费用。
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>预报话术管理</title>
+<style>
+  :root{--b:#1f6feb;--bd:#d0d7de;--bg:#f6f8fa;--tx:#24292f;--panel:#fff;--border:#d0d7de;--primary:#1f6feb}
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.5 -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--tx);background:var(--bg)}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px}
+  .topbar{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--border)}
+  .topbar .back{color:var(--primary);text-decoration:none;font-weight:600;font-size:13px}
+  .topbar .back:hover{text-decoration:underline}
+  .topbar .mod{font-weight:700;font-size:15px}
+  h1{font-size:16px;margin:14px 0 10px;display:flex;align-items:center;gap:8px}
+  .card{border:1px solid var(--bd);border-radius:6px;background:#fff}
+  .hd{background:#f0f3f6;border-bottom:1px solid var(--bd);padding:6px 10px;font-weight:600;border-radius:6px 6px 0 0}
+  .bd{padding:10px}
+  label{display:block;margin:0 0 4px;color:#57606a;font-size:12px}
+  input[type=text],select,textarea{width:100%;padding:5px 7px;border:1px solid var(--bd);border-radius:4px;font:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--b)}
+  button{background:var(--b);color:#fff;border:0;border-radius:4px;padding:6px 14px;font:inherit;cursor:pointer}
+  button.ghost{background:#eaeef2;color:#24292f}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btns{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+  .hidden{display:none}
+  .err{color:#cf222e}.ok{color:#1a7f37}
+  .hint{font-size:11px;color:#57606a;margin-top:3px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .mini{font-size:11.5px;padding:3px 9px}
+  .badge{font-size:10px;padding:1px 6px;border-radius:3px;background:#dbeafe;color:#0645ad;margin-left:6px}
+  .badge.def{background:#fff8c5;color:#9a6700}
+  .badge.cust{background:#eaeef2;color:#57606a}
+
+  .toolbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+  .tpl{border:1px solid var(--bd);border-radius:6px;background:#fff;padding:8px 10px;margin-bottom:8px}
+  .tpl .name{font-weight:600;display:flex;align-items:center;gap:6px}
+  .tpl .body{margin-top:6px;white-space:pre-wrap;background:#f6f8fa;border:1px solid var(--bd);border-radius:4px;padding:8px;font-size:12px;max-height:140px;overflow:auto;word-break:break-all}
+  .tpl .acts{margin-top:6px;display:flex;gap:6px}
+  .varbtn{background:#eaeef2;color:#24292f;border:1px solid var(--bd);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;margin:2px}
+  .varbtn:hover{background:#dbeafe}
+  .vars{margin-top:6px}
+  pre{background:#f6f8fa;border:1px solid var(--bd);border-radius:4px;padding:8px;white-space:pre-wrap;margin:6px 0 0;font-size:12px}
+</style>
+</head>
+<body>
+  <div class="topbar"><a href="/" class="back">← 返回单证提取填充工具</a><span class="mod">预报话术管理</span><a href="/bol-forecast" style="margin-left:auto;color:var(--primary);text-decoration:none;font-weight:600;font-size:13px">⚓ 散货提单和预报生成 →</a></div>
+<div class="wrap">
+  <h1>📣 预报话术模板管理 <span class="hint" style="font-weight:400">新增 / 编辑 / 删除均在此页完成；点击「新增话术」或列表中的「编辑」才展开编辑器。</span></h1>
+
+  <div class="card">
+    <div class="hd">筛选范围</div>
+    <div class="bd">
+      <div class="toolbar">
+        <div class="fld" style="min-width:180px"><span class="k" style="font-size:12px;color:#57606a">作用域</span>
+          <select id="f-scope">
+            <option value="all">全部（共用 + 所选客户专属）</option>
+            <option value="shared">仅共用话术</option>
+            <option value="customer">仅所选客户专属</option>
+          </select>
+        </div>
+        <div class="fld" style="min-width:240px"><span class="k" style="font-size:12px;color:#57606a">客户（客户专属/全部时使用）</span>
+          <select id="f-cust"></select>
+        </div>
+        <button class="ghost" id="btn-new">＋ 新增话术</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="list-box" style="margin-top:10px"></div>
+
+  <!-- ── 编辑器（默认隐藏，点击新增/编辑才出现） ── -->
+  <div class="card hidden" id="editor" style="margin-top:10px">
+    <div class="hd">话术编辑器</div>
+    <div class="bd">
+      <input type="hidden" id="e-id">
+      <div class="row">
+        <div class="fld"><span class="k">话术名称</span><input type="text" id="e-name" placeholder="如 开船预报-标准版"></div>
+        <div class="fld"><span class="k">归属</span>
+          <select id="e-cust"><option value="">（共用）所有客户可用</option></select>
+        </div>
+      </div>
+      <label class="chk" style="display:flex;align-items:center;gap:6px;margin-top:6px"><input type="checkbox" id="e-default"> 设为默认话术（同作用域内唯一默认）</label>
+
+      <div class="fld" style="margin-top:8px"><span class="k">正文（支持变量 {{变量名}}）</span>
+        <textarea id="e-body" style="height:160px;resize:vertical;font-size:12px"></textarea>
+      </div>
+      <div class="vars" id="vars-box"><span class="hint">可用变量（点击插入到光标处）：</span></div>
+
+      <div class="btns">
+        <button id="btn-save">保存话术</button>
+        <button class="ghost" id="btn-cancel">取消</button>
+        <button class="ghost mini" id="btn-preview">预览（用示例值）</button>
+        <span id="e-msg" class="err"></span>
+      </div>
+      <div id="e-preview" class="hidden"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function $(id){return document.getElementById(id)}
+function esc(s){return (s==null?'':String(s)).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+async function loadCustomers(){
+  const d=await (await fetch('/api/bol/customers')).json();
+  const custs=d.customers||[];
+  const fmt=c=>c.code==='*DEFAULT*'?'★ 默认模板':`${c.code||''} · ${c.name||''}`.trim();
+  // 筛选用
+  const fc=$('f-cust'); fc.innerHTML='<option value="">（不限定客户）</option>';
+  // 编辑器归属用
+  const ec=$('e-cust'); ec.innerHTML='<option value="">（共用）所有客户可用</option>';
+  custs.forEach(c=>{
+    fc.insertAdjacentHTML('beforeend',`<option value="${c.id}">${esc(fmt(c))}</option>`);
+    ec.insertAdjacentHTML('beforeend',`<option value="${c.id}">${esc(fmt(c))}</option>`);
+  });
+}
+
+async function loadVars(){
+  const d=await (await fetch('/api/bol/speech-vars')).json();
+  const box=$('vars-box'); box.innerHTML='<span class="hint">可用变量（点击插入到光标处）：</span>';
+  (d.vars||[]).forEach(v=>{
+    const b=document.createElement('button');
+    b.className='varbtn'; b.textContent='{{'+v.key+'}}';
+    b.title=v.label||v.key;
+    b.onclick=()=>insertVar(v.key);
+    box.appendChild(b);
+  });
+}
+
+function insertVar(key){
+  const ta=$('e-body'); const tok='{{'+key+'}}';
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+tok+ta.value.slice(e);
+  ta.focus(); ta.selectionStart=ta.selectionEnd=s+tok.length;
+}
+
+async function loadTemplates(){
+  const scope=$('f-scope').value;
+  const cid=$('f-cust').value;
+  let url='/api/bol/speech-templates?scope='+encodeURIComponent(scope);
+  if(cid) url+='&customer_id='+encodeURIComponent(cid);
+  let data={templates:[]};
+  try{ data=await (await fetch(url)).json(); }catch(e){}
+  const tpls=data.templates||[];
+  const box=$('list-box');
+  if(!tpls.length){ box.innerHTML='<div class="hint">暂无话术，点击右上「＋ 新增话术」创建。</div>'; return; }
+  box.innerHTML=tpls.map(t=>{
+    const scopeBadge = t.scope==='shared'
+      ? '<span class="badge">共用</span>'
+      : '<span class="badge cust">客户专属</span>';
+    const defBadge = t.is_default?'<span class="badge def">⭐默认</span>':'';
+    return `<div class="tpl" data-id="${t.id}">
+      <div class="name">${esc(t.name)}${scopeBadge}${defBadge}</div>
+      <div class="body">${esc(t.body)}</div>
+      <div class="acts">
+        <button class="ghost mini" data-act="edit" data-id="${t.id}">✎ 编辑</button>
+        <button class="ghost mini" data-act="del" data-id="${t.id}">🗑 删除</button>
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-act]').forEach(b=>{
+    b.onclick=()=>{ b.dataset.act==='edit'?openEditor(Number(b.dataset.id)):delSpeech(Number(b.dataset.id)); };
+  });
+}
+
+function openEditor(id){
+  $('e-msg').textContent='';
+  if(id==null){
+    $('e-id').value=''; $('e-name').value=''; $('e-body').value='';
+    $('e-cust').value=''; $('e-default').checked=false;
+  }else{
+    // 从当前列表取该话术
+    const node=document.querySelector(`.tpl[data-id="${id}"]`);
+    const body=node?node.querySelector('.body').textContent:'';
+    const name=node?node.querySelector('.name').childNodes[0].textContent.trim():'';
+    $('e-id').value=id; $('e-name').value=name; $('e-body').value=body;
+    // scope/customer/id 需要后端回填，简单处理：先置空归属（用户可重新选）
+    $('e-cust').value=''; $('e-default').checked=false;
+  }
+  $('editor').classList.remove('hidden');
+  $('e-preview').classList.add('hidden');
+  window.scrollTo({top:$('editor').offsetTop-20,behavior:'smooth'});
+}
+function closeEditor(){ $('editor').classList.add('hidden'); }
+
+async function saveSpeech(){
+  const id=$('e-id').value||null;
+  const body={
+    id: id?Number(id):null,
+    name:$('e-name').value.trim(),
+    body:$('e-body').value,
+    is_default:$('e-default').checked,
+    customer_id: $('e-cust').value? Number($('e-cust').value): null,
+  };
+  if(!body.name){ $('e-msg').textContent='请填写话术名称'; return; }
+  if(!body.body.trim()){ $('e-msg').textContent='请填写话术正文'; return; }
+  $('e-msg').textContent='';
+  try{
+    const r=await fetch('/api/bol/speech-templates',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.error){ $('e-msg').textContent=d.error; return; }
+    closeEditor(); await loadTemplates();
+  }catch(e){ $('e-msg').textContent='保存失败: '+e; }
+}
+
+async function delSpeech(id){
+  if(!confirm('确认删除该话术？（共用话术至少保留一条）')) return;
+  try{
+    const r=await fetch('/api/bol/speech-templates/'+id,{method:'DELETE'});
+    const d=await r.json();
+    if(d.error){ alert(d.error); return; }
+    await loadTemplates();
+  }catch(e){ alert('删除失败: '+e); }
+}
+
+async function previewSpeech(){
+  const body=$('e-body').value;
+  const cid=$('e-cust').value||null;
+  try{
+    const r=await fetch('/api/bol/speech-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({body, use_sample:true, customer_id:cid?Number(cid):null})});
+    const d=await r.json();
+    const box=$('e-preview');
+    box.classList.remove('hidden');
+    box.innerHTML='<div class="sec-title" style="font-weight:600;color:#57606a;margin-bottom:4px">预览（示例值）</div>'+
+      '<pre>'+esc(d.text||'')+'</pre>'+
+      (d.missing&&d.missing.length?'<div class="hint">未命中变量：'+d.missing.join(', ')+'</div>':'');
+  }catch(e){ $('e-msg').textContent='预览失败: '+e; }
+}
+
+$('f-scope').onchange=loadTemplates;
+$('f-cust').onchange=loadTemplates;
+$('btn-new').onclick=()=>openEditor(null);
+$('btn-cancel').onclick=closeEditor;
+$('btn-save').onclick=saveSpeech;
+$('btn-preview').onclick=previewSpeech;
+
+loadCustomers().then(()=>{ loadVars(); loadTemplates(); });
+</script>
+</body>
+</html>

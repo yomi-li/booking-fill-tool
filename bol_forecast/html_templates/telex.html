@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>电放保函 · {{ ctx.bl_no or "" }}</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="../telex.css">
+</head>
+<body>
+
+<div class="title">电报放货通知 (Telex Release Requisition)</div>
+
+<div class="to-block">
+    <div class="to-line">致： 深圳市嘀嗒嘀物流科技有限公司</div>
+    <div class="to-line to-line-en">To:&nbsp;&nbsp;&nbsp;DIDADI&nbsp;LOGISTICS&nbsp;TECH&nbsp;LIMITED</div>
+</div>
+
+<div class="body-cn">兹有我司以下货物即将运抵目的地，将该票货物的正本提单（全套）交还贵司，</div>
+<div class="body-cn">并申请将提单所注货物直接放给收货人：</div>
+
+<div class="consignee-line" style="font-size:{{ ctx.sizes.consignee }}pt;">{{ ctx.consignee or "" }}</div>
+
+<div class="body-cn">收货人无需提供有关单证，由此引起的一切责任，风险和费用将由我司负责和承担。</div>
+
+<div class="body-en body-gap">We have surrendered the full set of the under-mentioned original bill of lading to</div>
+<div class="body-en consignee-line" style="font-size:{{ ctx.sizes.consignee }}pt;">{{ ctx.consignee or "" }}</div>
+<div class="body-en">DIDADI&nbsp;LOGISTICS&nbsp;TECH&nbsp;LIMITED and hereby request them to release the cargo against</div>
+<div class="body-en">the under-mentioned bill of lading to below consignee without presentation of original</div>
+<div class="body-en">bill of lading. We will undertake all the responsibilities, risks, costs and consequences</div>
+<div class="body-en">arising from this.</div>
+
+<div class="body-cn body-gap">本保函以中华人民共和国法律作为准据法。</div>
+<div class="body-en">This letter of guarantee is governed by the laws of the People's Republic of China.</div>
+
+<div class="body-cn body-gap">提单注明的货物资料如下 (Details denoted on the original bill of lading):</div>
+
+<table class="field-table">
+    <tr>
+        <td class="label">提单号码 / BILL NO. ：</td>
+        <td class="value value-en fit" style="font-size:{{ ctx.sizes.bl_no }}pt;">{{ ctx.bl_no or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">柜号/封条 Container No. ： /Seal No.:</td>
+        <td class="value fit" style="font-size:{{ ctx.sizes.container }}pt;">{{ ctx.container or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">件&nbsp;&nbsp;&nbsp;数 / No. of Package：</td>
+        <td class="value fit" style="font-size:{{ ctx.sizes.package }}pt;">{{ ctx.package or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">发&nbsp;货&nbsp;人 / Shipper :</td>
+        <td class="value fit" style="font-size:{{ ctx.sizes.shipper }}pt;">{{ ctx.shipper or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">收&nbsp;货&nbsp;人 / Consignee ：</td>
+        <td class="value fit" style="font-size:{{ ctx.sizes.consignee }}pt;">{{ ctx.consignee or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">起运港 / POL：</td>
+        <td class="value value-en fit" style="font-size:{{ ctx.sizes.pol }}pt;">{{ ctx.pol or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">起运时间 / On Board Date：</td>
+        <td class="value value-en fit" style="font-size:{{ ctx.sizes.shipped_date }}pt;">{{ ctx.shipped_date or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">目的港 / POD ：</td>
+        <td class="value value-en fit" style="font-size:{{ ctx.sizes.pod }}pt;">{{ ctx.pod or "" }}</td>
+    </tr>
+    <tr>
+        <td class="label">船名航次 / Vessel &amp; Voyage：</td>
+        <td class="value value-en fit" style="font-size:{{ ctx.sizes.vessel }}pt;">{{ ctx.vessel or "" }}</td>
+    </tr>
+</table>
+
+<div class="sign-block">
+    <div class="sign-line">申请公司 (Requested by – Company Name):</div>
+    <div class="sign-line">签字及盖章 (Booked-by &amp; Shipper 公章)：</div>
+    <div class="sign-line">日期 (Date)：</div>
+</div>
+
+<div class="remark">备注：此文件复印件/扫描件有效。</div>
+<div class="remark remark-en">Remarks: Copies/scans of this document are valid.</div>
+
+</body>
+</html>

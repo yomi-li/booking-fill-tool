@@ -1,0 +1,56 @@
+/* 电放保函 专用样式（最简文档：纯文字 + 字段行）。 */
+.title {
+    font-family: var(--font-yahei);
+    font-size: 16pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 8pt 0;
+}
+.subtitle-en { font-family: var(--font-latin); font-size: 11pt; }
+
+.to-block { margin: 6pt 0 4pt 0; }
+.to-line  { font-family: var(--font-yahei); font-size: 10.5pt; }
+.to-line-en { font-family: var(--font-latin); font-size: 10.5pt; }
+
+.body-cn { font-family: var(--font-cjk); font-size: 11pt; line-height: 1.5; margin: 4pt 0; }
+.body-en { font-family: var(--font-latin); font-size: 11pt; line-height: 1.5; margin: 4pt 0; }
+.body-gap { margin-top: 6pt; }
+
+.consignee-line {
+    font-family: var(--font-yahei);
+    font-size: 11pt;
+    margin: 4pt 0 4pt 12pt;
+}
+
+.field-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8pt;
+    font-size: 11pt;
+}
+.field-table td {
+    padding: 3pt 4pt;
+    vertical-align: top;
+}
+.field-table td.label {
+    width: 38%;
+    font-weight: bold;
+    font-family: var(--font-yahei);
+    white-space: nowrap;
+}
+.field-table td.value {
+    font-family: var(--font-yahei);
+}
+.field-table td.value-en {
+    font-family: var(--font-latin);
+}
+.field-table td.fit {
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 0;        /* 触发 ellipsis/truncate by table-layout */
+}
+
+.sign-block { margin-top: 24pt; }
+.sign-line  { margin: 4pt 0; font-size: 11pt; font-family: var(--font-yahei); }
+.remark     { margin-top: 18pt; font-size: 10pt; color: #222; }
+.remark-en  { font-family: var(--font-latin); font-size: 10pt; color: #222; }

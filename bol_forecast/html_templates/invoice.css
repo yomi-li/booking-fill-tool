@@ -1,0 +1,121 @@
+/* INVOICE 样式。对应模板：INVOICE模版.xlsx，A1:R45。
+ * 顶部 INVOICE 大标题（Lato 32pt bold 右对齐，模拟原 DrawingML 文本框）。
+ * 注：波浪装饰原为 DrawingML Freeform（#ED420D），CSS 重建为右上角装饰条。
+ */
+.invoice-sheet { width: 100%; position: relative; }
+
+.invoice-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8pt;
+}
+.invoice-logo img { max-height: 60pt; }
+.invoice-title {
+    font-family: "Lato", "Arial", sans-serif;
+    font-size: 24pt;
+    font-weight: bold;
+    color: #000;
+    text-align: right;
+    line-height: 1;
+}
+/* 模拟原 Freeform 橙色装饰条 */
+.invoice-deco {
+    height: 4pt;
+    background: #ED420D;
+    margin: 4pt 0 12pt 0;
+    border-radius: 0 6pt 6pt 0;
+}
+
+.invoice-info {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6pt 0;
+}
+.invoice-info td {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    vertical-align: top;
+    font-size: 11pt;
+}
+.invoice-info td.label {
+    font-family: var(--font-yahei);
+    font-weight: bold;
+    width: 12%;
+    background: #f5f5f5;
+    white-space: nowrap;
+}
+.invoice-info td.value {
+    font-family: var(--font-latin);
+    width: 38%;
+    white-space: pre-line;
+}
+.invoice-info td.value-cjk { font-family: var(--font-yahei); }
+
+.invoice-bill {
+    margin: 6pt 0 4pt 0;
+    padding: 4pt 6pt;
+    background: #f5f5f5;
+    border: 0.5pt solid #000;
+}
+.invoice-bill .label {
+    font-weight: bold;
+    font-family: var(--font-yahei);
+    font-size: 10pt;
+    color: #555;
+    margin-bottom: 2pt;
+}
+.invoice-bill .name {
+    font-family: var(--font-latin);
+    font-size: 13pt;
+    font-weight: bold;
+}
+.invoice-bill .contact {
+    font-size: 10pt;
+    color: #444;
+    margin-top: 2pt;
+}
+
+.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12pt 0;
+}
+.invoice-table th, .invoice-table td {
+    border: 0.5pt solid #000;
+    padding: 4pt 6pt;
+    font-size: 11pt;
+}
+.invoice-table th {
+    background: #f0f0f0;
+    font-family: var(--font-yahei);
+    font-weight: bold;
+    text-align: center;
+}
+.invoice-table td.amount { text-align: right; font-family: var(--font-latin); }
+.invoice-table td.center { text-align: center; font-family: var(--font-latin); }
+.invoice-table tfoot td { font-weight: bold; font-size: 12pt; }
+
+.invoice-notes {
+    margin-top: 12pt;
+    padding: 6pt 8pt;
+    border: 0.5pt solid #000;
+    font-size: 10pt;
+    line-height: 1.5;
+    font-family: var(--font-yahei);
+}
+.invoice-notes h3 { font-size: 11pt; font-weight: bold; margin-bottom: 4pt; }
+
+/* 需求2：账单总币别标注行 */
+.invoice-currency-line {
+    margin: 4pt 0 0 0;
+    padding: 3pt 6pt;
+    border: 0.5pt solid #000;
+    font-size: 10pt;
+    font-family: var(--font-yahei);
+    text-align: right;
+}
+
+/* 需求2：费用行名称 + 英文原币/汇率说明 */
+.charge-name { font-weight: bold; }
+.charge-desc { font-size: 8pt; color: #444; margin-top: 1pt; }

@@ -1,0 +1,43 @@
+{
+  "company": {
+    "name_cn": "深圳市嘀嗒嘀物流科技有限公司",
+    "name_en": "DIDADI LOGISTICS TECH LIMITED",
+    "place_of_issue": "SHENZHEN, CHINA"
+  },
+  "bl": {
+    "say_style": "split",
+    "default_pkg_unit": "CTNS",
+    "default_freight_term": "FREIGHT COLLECT",
+    "originals": "Three(3)"
+  },
+  "charge": {
+    "factory_rows": [16, 30],
+    "invoice_rows": [19, 21],
+    "factory_currency": "RMB",
+    "invoice_currency": "USD"
+  },
+  "com": {
+    "timeout_sec": 120,
+    "kill_orphan_on_start": true
+  },
+  "template_files": {
+    "bl": "开船提单模版.xlsx",
+    "telex": "电放提单模版.xlsx",
+    "factory": "工厂账单模版.xlsx",
+    "invoice": "INVOICE模版.xlsx"
+  },
+  "doc_labels": {
+    "bl": "提单核对件",
+    "telex": "电放保函",
+    "factory": "工厂账单",
+    "invoice": "INVOICE",
+    "speech": "预报话术"
+  },
+  "renderer": "com",
+  "expect_media": {
+    "bl": 2,
+    "telex": 0,
+    "factory": 1,
+    "invoice": 1
+  }
+}

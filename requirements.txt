@@ -1,9 +1,34 @@
-fastapi
-uvicorn
-pdfplumber
-openpyxl
-xlrd
-Pillow
-python-multipart
-requests
+# booking-fill-tool · 依赖清单
+# 注：本项目 HTTP 服务跑的是项目内嵌的 ./python/python.exe (Windows) /
+# 容器内的 python:3.11-slim (Linux)，不是受管 Python 也不是 venv。
+# 新增 pip 包时务必装到 *正确* 的 Python（否则 HTTP 静默退化）。
+#
+# 渲染器选择（bol_forecast 配置）：见 bol_forecast/config.json "renderer"
+# 或环境变量 BOL_RENDERER。Windows+Office 机器可保留 com 回退；Linux
+# 部署只能走 html（WeasyPrint）。
+
+# --- Web 框架 ---
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+
+# --- 数据解析 ---
+pdfplumber==0.11.*
+openpyxl==3.1.*
+xlrd==2.0.*
+Pillow==11.*
+
+# --- 上传 / 表单 ---
+python-multipart==0.0.*
+requests==2.32.*
+
+# --- HTML/CSS → PDF（新主路径，Linux 部署必需） ---
+# WeasyPrint 自带依赖（pydyf / tinycss2 / cssselect2 / pyphen / fonttools /
+# tinyhtml5 / brotli / cffi），见 requirements-lock.txt。
+weasyprint==68.0
+
+# --- Excel / Word 预览（pypdfium2 已有 5.x，未在 requirements 是因为
+#     它已被 venv 装好但部署时需要；正式补上以保一致）---
+pypdfium2==5.*
+
+# --- Windows-only：Excel COM（Linux 自动跳过）---
 pywin32; sys_platform == 'win32'

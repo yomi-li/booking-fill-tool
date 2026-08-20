@@ -11,7 +11,10 @@ import re
 import zipfile
 import datetime
 import tempfile
+import logging
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -361,6 +364,43 @@ async def generate_bookings(req: Request):
 
 # 静态服务 SKU 图片，供前端预览
 app.mount("/sku_images", StaticFiles(directory=IMAGE_DIR), name="sku_images")
+
+
+# ===== 集成模块：散货提单和预报生成 =====
+# 复用本系统的 BasicAuth / 上传下载 / 错误格式；独立命名空间 /api/bol，互不冲突。
+from bol_forecast.router import router as bol_router
+from bol_forecast.config import JOBS_DIR as BOL_JOBS_DIR
+from bol_forecast.data import db as bol_db
+
+app.include_router(bol_router)
+
+@app.get("/bol-forecast", response_class=HTMLResponse)
+async def bol_forecast_page():
+    p = os.path.join(BASE, "templates", "bol_forecast.html")
+    with open(p, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+@app.get("/bol-speech", response_class=HTMLResponse)
+async def bol_speech_page():
+    p = os.path.join(BASE, "templates", "bol_speech.html")
+    with open(p, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+# 生成产物（xlsx/pdf/zip）下载：router 返回 /bol-files/... URL
+app.mount("/bol-files", StaticFiles(directory=str(BOL_JOBS_DIR)), name="bol_files")
+
+@app.on_event("startup")
+async def _bol_startup():
+    bol_db.init_db()
+    # ★COM 预热：服务启动时初始化 Excel 实例，避免用户第一次生成时
+    # COM 进入"永久忙态"导致首次失败。com_retry 会自动重试，
+    # 但预热后用户直接可用，无需第二次点击。
+    try:
+        from bol_forecast.generators.com_session import launch_excel
+        launch_excel(visible=False)
+        logger.info("COM 预热完成，Excel 实例已就绪")
+    except Exception as e:
+        logger.warning("COM 预热失败（用户第一次生成时仍会重试）: %s", e)
 
 
 # --------------------------------------------------------------------------

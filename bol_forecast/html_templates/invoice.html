@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>INVOICE · {{ ctx.bl_no or "" }}</title>
+    <link rel="stylesheet" href="../base.css">
+    <link rel="stylesheet" href="../invoice.css">
+</head>
+<body>
+
+<div class="invoice-sheet">
+
+    <!-- 顶部 LOGO + INVOICE 大标题 -->
+    <div class="invoice-title-bar">
+        <div class="invoice-logo">
+            <img class="logo-mid" src="../static/img/bl_logo.png" alt="LOGO">
+        </div>
+        <div class="invoice-title">INVOICE</div>
+    </div>
+    <div class="invoice-deco"></div>
+
+    <!-- 抬头参考：G2/G3/G4 提单号/出票日/到期日 -->
+    <table class="invoice-info">
+        <tr>
+            <td class="label">B/L No.</td>
+            <td class="value" style="font-size:{{ ctx.sizes.bill_no }}pt;">{{ ctx.bill_no or "" }}</td>
+            <td class="label">Date</td>
+            <td class="value" style="font-size:{{ ctx.sizes.bill_date }}pt;">{{ ctx.bill_date or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">Due Date</td>
+            <td class="value" style="font-size:{{ ctx.sizes.due_date }}pt;">{{ ctx.due_date or "" }}</td>
+            <td class="label"></td>
+            <td class="value"></td>
+        </tr>
+    </table>
+
+    <!-- 收货人 / 联系人 -->
+    <div class="invoice-bill">
+        <div class="label">BILL TO</div>
+        <div class="name" style="font-size:{{ ctx.sizes.bill_to_name }}pt;">{{ ctx.bill_to_name or "" }}</div>
+        <div class="contact">{{ ctx.bill_to_contact or "" }}</div>
+    </div>
+
+    <!-- 提单/柜号/船名/POL/POD -->
+    <table class="invoice-info">
+        <tr>
+            <td class="label">B/L No.</td>
+            <td class="value" style="font-size:{{ ctx.sizes.bl_no }}pt;">{{ ctx.bl_no or "" }}</td>
+            <td class="label">Container</td>
+            <td class="value" style="font-size:{{ ctx.sizes.container }}pt;">{{ ctx.container or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">Vessel</td>
+            <td class="value" style="font-size:{{ ctx.sizes.vessel }}pt;">{{ ctx.vessel or "" }}</td>
+            <td class="label">POL</td>
+            <td class="value" style="font-size:{{ ctx.sizes.pol }}pt;">{{ ctx.pol or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">POD</td>
+            <td class="value" colspan="3" style="font-size:{{ ctx.sizes.pod }}pt;">{{ ctx.pod or "" }}</td>
+        </tr>
+    </table>
+
+    <!-- 件数 / 品名 / 毛重 / 体积 -->
+    <table class="invoice-info">
+        <tr>
+            <td class="label">No. of Pkgs</td>
+            <td class="value" style="font-size:{{ ctx.sizes.ctns }}pt;">{{ ctx.ctns or "" }}</td>
+            <td class="label">Description</td>
+            <td class="value" style="font-size:{{ ctx.sizes.goods_name }}pt;">{{ ctx.goods_name or "" }}</td>
+        </tr>
+        <tr>
+            <td class="label">Gross Weight</td>
+            <td class="value" style="font-size:{{ ctx.sizes.gw }}pt;">{{ ctx.gw or "" }} KGS</td>
+            <td class="label">Measurement</td>
+            <td class="value" style="font-size:{{ ctx.sizes.cbm }}pt;">{{ ctx.cbm or "" }} CBM</td>
+        </tr>
+    </table>
+
+    <!-- 费用表（3 行） -->
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th style="width:36%;">DESCRIPTION</th>
+                <th style="width:14%;">UNIT</th>
+                <th style="width:14%;">PRICE</th>
+                <th style="width:10%;">QTY</th>
+                <th style="width:8%;">CUR</th>
+                <th style="width:18%;">AMOUNT</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ctx.charge_rows %}
+            <tr>
+                <td>
+                    <span class="charge-name">{{ row.name or "" }}</span>
+                    {%- if row.desc_en and row.desc_en != row.name %}
+                    <div class="charge-desc">{{ row.desc_en }}</div>
+                    {%- endif %}
+                </td>
+                <td class="center">{{ row.unit or "" }}</td>
+                <td class="amount">{{ row.unit_price or "" }}</td>
+                <td class="center">{{ row.qty or "" }}</td>
+                <td class="center">{{ row.currency or "" }}</td>
+                <td class="amount" style="font-size:{{ ctx.sizes.charge_amount }}pt;">
+                    {%- set sym = {"USD": "$", "EUR": "€", "GBP": "£"}.get(ctx.total_currency or ctx.currency or "USD", "$") -%}
+                    {{ sym }}{{ row.amount or "" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align:right;">SUBTOTAL({{ ctx.total_currency or ctx.currency or "USD" }}):</td>
+                <td class="amount" style="font-size:{{ ctx.sizes.subtotal }}pt;">
+                    {%- set sym = {"USD": "$", "EUR": "€", "GBP": "£"}.get(ctx.total_currency or ctx.currency or "USD", "$") -%}
+                    {{ sym }}{{ ctx.subtotal or "" }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align:right;">TOTAL({{ ctx.total_currency or ctx.currency or "USD" }}):</td>
+                <td class="amount" style="font-size:{{ ctx.sizes.total }}pt;">
+                    {%- set sym = {"USD": "$", "EUR": "€", "GBP": "£"}.get(ctx.total_currency or ctx.currency or "USD", "$") -%}
+                    {{ sym }}{{ ctx.total or "" }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- 账户信息和备注 -->
+    <div class="invoice-notes">
+        <h3>ACCOUNT DETAILS</h3>
+        <div>Bank: HSBC Hong Kong</div>
+        <div>A/C No.: 004-XXXXXX-XXX (示例)</div>
+        <div>SWIFT: HSBCHKHHXXX</div>
+    </div>
+
+    <div class="invoice-notes">
+        <h3>NOTES</h3>
+        <ol>
+            <li>Please remit the TOTAL amount to the above account within 30 days.</li>
+            <li>Quotation excludes duties and taxes at destination.</li>
+            <li>For any queries please contact our CSR team.</li>
+        </ol>
+    </div>
+
+</div>
+
+</body>
+</html>
