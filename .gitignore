@@ -38,3 +38,10 @@ Thumbs.db
 #   app.py / *.py 主代码、requirements.txt、Dockerfile、.dockerignore、
 #   config.json、rules.json、assets/（模板）、sku_images/（产品图种子）、
 #   customer_sku.json（产品库种子）、templates/、start_server.bat、README*
+
+# bol_forecast runtime data - do not commit
+bol_forecast/data/bol_forecast.db
+bol_forecast/data/*.db-*
+bol_forecast/data/jobs/
+bol_forecast/data/logs/
+bol_forecast/data/backup/
