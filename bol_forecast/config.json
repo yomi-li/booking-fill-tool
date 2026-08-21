@@ -33,7 +33,7 @@
     "invoice": "INVOICE",
     "speech": "预报话术"
   },
-  "renderer": "com",
+  "renderer": "html",
   "expect_media": {
     "bl": 2,
     "telex": 0,
